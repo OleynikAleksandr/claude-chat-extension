@@ -1,0 +1,132 @@
+{
+  "name": "claude-chat",
+  "displayName": "Claude Chat",
+  "description": "Chat interface for Claude Code CLI in VS Code",
+  "version": "0.3.1",
+  "publisher": "aleksandr-oleynik",
+  "author": {
+    "name": "Aleksandr Oleynik",
+    "email": "contact@oleynik.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OleynikAleksandr/claude-chat-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OleynikAleksandr/claude-chat-extension/issues"
+  },
+  "homepage": "https://github.com/OleynikAleksandr/claude-chat-extension#readme",
+  "keywords": [
+    "claude",
+    "chat",
+    "cli",
+    "terminal",
+    "anthropic",
+    "ai",
+    "vscode-extension"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:claudeChat.openChat",
+    "onView:claudeChatView"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeChat.openChat",
+        "title": "Claude Chat: Open Chat Panel",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.sendMessage",
+        "title": "Claude Chat: Send Message to Terminal",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.quickSend",
+        "title": "Claude Chat: Quick Send",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.togglePanel",
+        "title": "Claude Chat: Toggle Panel",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.clearHistory",
+        "title": "Claude Chat: Clear History",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.showStatus",
+        "title": "Claude Chat: Show Terminal Status",
+        "category": "Claude Chat"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-chat-container",
+          "title": "Claude Chat",
+          "icon": "$(comment-discussion)"
+        }
+      ]
+    },
+    "views": {
+      "claude-chat-container": [
+        {
+          "type": "webview",
+          "id": "claudeChatView",
+          "name": "Claude Chat"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "claudeChat.openChat",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c"
+      },
+      {
+        "command": "claudeChat.quickSend",
+        "key": "ctrl+shift+enter",
+        "mac": "cmd+shift+enter"
+      },
+      {
+        "command": "claudeChat.togglePanel",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t"
+      },
+      {
+        "command": "claudeChat.clearHistory",
+        "key": "ctrl+shift+delete",
+        "mac": "cmd+shift+delete"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.6.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}
