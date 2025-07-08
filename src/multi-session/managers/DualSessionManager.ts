@@ -5,14 +5,20 @@
  */
 
 import * as vscode from 'vscode';
-import { Session, Message, SessionManagerEvents } from '../types/Session';
+import { Session, Message } from '../types/Session';
 
 export class DualSessionManager {
   private sessions: Map<string, Session> = new Map();
   private activeSessionId: string | null = null;
   private readonly maxSessions = 2;
   private readonly messageHistoryLimit = 100;
-  private eventEmitter = new vscode.EventEmitter<any>();
+  
+  // Event callbacks
+  private onSessionCreatedCallback?: (session: Session) => void;
+  private onSessionClosedCallback?: (sessionId: string) => void;
+  private onSessionSwitchedCallback?: (sessionId: string) => void;
+  private onSessionStatusChangedCallback?: (sessionId: string, status: Session['status']) => void;
+  private onMessageReceivedCallback?: (sessionId: string, message: Message) => void;
 
   constructor(private outputChannel: vscode.OutputChannel) {
     this.setupTerminalEventListeners();
@@ -48,21 +54,19 @@ export class DualSessionManager {
       session.status = 'starting';
 
       // Start Claude Code
-      await this.startClaudeCode(terminal);
-      
-      // Wait for Claude to be ready
-      session.status = 'ready';
+      await this.startClaudeCode(session);
       
       // Make this session active
       await this.switchToSession(sessionId);
 
       this.outputChannel.appendLine(`Session created successfully: ${sessionName}`);
-      // Event firing would be implemented with proper event system
+      this.fireEvent('sessionCreated', session);
 
       return session;
     } catch (error) {
       session.status = 'error';
       this.outputChannel.appendLine(`Failed to create session: ${error}`);
+      this.fireEvent('sessionStatusChanged', sessionId, 'error');
       throw error;
     }
   }
@@ -92,7 +96,7 @@ export class DualSessionManager {
       }
     }
 
-    // Event firing would be implemented with proper event system
+    this.fireEvent('sessionClosed', sessionId);
   }
 
   async switchToSession(sessionId: string): Promise<void> {
@@ -112,7 +116,7 @@ export class DualSessionManager {
     // Update active session
     this.activeSessionId = sessionId;
 
-    // Event firing would be implemented with proper event system
+    this.fireEvent('sessionSwitched', sessionId);
   }
 
   async sendMessage(sessionId: string, message: string): Promise<void> {
@@ -145,7 +149,7 @@ export class DualSessionManager {
     // Update last active time
     session.lastActiveAt = new Date();
 
-    // Event firing would be implemented with proper event system
+    this.fireEvent('messageReceived', sessionId, messageObj);
   }
 
   // Getters
@@ -184,15 +188,39 @@ export class DualSessionManager {
     return terminal;
   }
 
-  private async startClaudeCode(terminal: vscode.Terminal): Promise<void> {
-    // Send claude command with automatic Enter
-    terminal.sendText('claude', true);
+  private async startClaudeCode(session: Session): Promise<void> {
+    const { terminal, id: sessionId } = session;
     
-    // Give Claude time to start
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    this.outputChannel.appendLine(`Starting Claude Code in session ${sessionId}`);
     
-    // Send additional Enter to ensure Claude is ready
-    terminal.sendText('', true);
+    try {
+      // Send claude command with automatic Enter
+      terminal.sendText('claude', true);
+      
+      // Update status to starting
+      session.status = 'starting';
+      this.fireEvent('sessionStatusChanged', sessionId, 'starting');
+      
+      // Give Claude time to start
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Send additional Enter to ensure Claude is ready (critical for Claude CLI)
+      terminal.sendText('', true);
+      
+      // Wait a bit more for Claude to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update status to ready
+      session.status = 'ready';
+      this.fireEvent('sessionStatusChanged', sessionId, 'ready');
+      
+      this.outputChannel.appendLine(`Claude Code ready in session ${sessionId}`);
+      
+    } catch (error) {
+      session.status = 'error';
+      this.fireEvent('sessionStatusChanged', sessionId, 'error');
+      throw error;
+    }
   }
 
   private async executeWithRetry(terminal: vscode.Terminal, command: string): Promise<void> {
@@ -238,16 +266,55 @@ export class DualSessionManager {
   }
 
   // Event handling
-  onSessionCreated(listener: (session: Session) => void): vscode.Disposable {
-    return this.eventEmitter.event(listener as any);
+  private fireEvent(eventName: string, ...args: any[]): void {
+    switch (eventName) {
+      case 'sessionCreated':
+        if (this.onSessionCreatedCallback) {
+          this.onSessionCreatedCallback(args[0]);
+        }
+        break;
+      case 'sessionClosed':
+        if (this.onSessionClosedCallback) {
+          this.onSessionClosedCallback(args[0]);
+        }
+        break;
+      case 'sessionSwitched':
+        if (this.onSessionSwitchedCallback) {
+          this.onSessionSwitchedCallback(args[0]);
+        }
+        break;
+      case 'sessionStatusChanged':
+        if (this.onSessionStatusChangedCallback) {
+          this.onSessionStatusChangedCallback(args[0], args[1]);
+        }
+        break;
+      case 'messageReceived':
+        if (this.onMessageReceivedCallback) {
+          this.onMessageReceivedCallback(args[0], args[1]);
+        }
+        break;
+    }
   }
 
-  onSessionClosed(listener: (sessionId: string) => void): vscode.Disposable {
-    return this.eventEmitter.event(listener as any);
+  // Event registration methods
+  onSessionCreated(callback: (session: Session) => void): void {
+    this.onSessionCreatedCallback = callback;
   }
 
-  onSessionSwitched(listener: (sessionId: string) => void): vscode.Disposable {
-    return this.eventEmitter.event(listener as any);
+  onSessionClosed(callback: (sessionId: string) => void): void {
+    this.onSessionClosedCallback = callback;
+  }
+
+  onSessionSwitched(callback: (sessionId: string) => void): void {
+    this.onSessionSwitchedCallback = callback;
+  }
+
+  onSessionStatusChanged(callback: (sessionId: string, status: Session['status']) => void): void {
+    this.onSessionStatusChangedCallback = callback;
+  }
+
+  onMessageReceived(callback: (sessionId: string, message: Message) => void): void {
+    this.onMessageReceivedCallback = callback;
   }
 
   // Cleanup
@@ -258,6 +325,5 @@ export class DualSessionManager {
     }
     
     this.sessions.clear();
-    this.eventEmitter.dispose();
   }
 }
