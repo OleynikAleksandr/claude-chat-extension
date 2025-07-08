@@ -79,6 +79,19 @@ export function useVSCodeAPI(): VSCodeAPIHook {
         ));
         break;
 
+      case 'messageResponse':
+        // Handle Claude Code response
+        if (message.success && message.response) {
+          setSessions(prev => prev.map(session => 
+            session.id === message.sessionId 
+              ? { ...session, messages: [...session.messages, message.response!] }
+              : session
+          ));
+        } else if (!message.success && message.error) {
+          setError(message.error);
+        }
+        break;
+
       case 'error':
         setError(message.message);
         setIsLoading(false);

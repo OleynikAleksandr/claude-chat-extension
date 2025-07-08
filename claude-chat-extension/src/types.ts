@@ -29,6 +29,8 @@ export interface MessageResponsePayload {
     message?: string;
     error?: string;
     timestamp: number;
+    sessionId?: string;
+    messageType?: string;
 }
 
 export interface StatusUpdatePayload {

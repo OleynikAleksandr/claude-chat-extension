@@ -49,7 +49,7 @@ export type ExtensionMessage =
   | { command: 'sessionStatusChanged'; sessionId: string; status: SessionStatus }
   | { command: 'messageReceived'; sessionId: string; message: Message }
   | { command: 'sessionCreated'; sessionId: string; session: Omit<Session, 'terminal'> }
-  | { command: 'messageSent'; sessionId: string; success: boolean }
+  | { command: 'messageResponse'; sessionId: string; success: boolean; response?: Message; error?: string }
   | { command: 'healthCheckResult'; healthStatus: [string, boolean][] }
   | { command: 'error'; message: string; sessionId?: string };
 

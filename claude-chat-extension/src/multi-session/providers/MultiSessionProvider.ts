@@ -135,6 +135,8 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
     });
 
     this.sessionManager.onMessageReceived((sessionId, message) => {
+      // Отправляем ВСЕ сообщения в webview - и user, и assistant
+      // Теперь assistant сообщения приходят через JSONL мониторинг
       this.sendMessage({
         command: 'messageReceived',
         sessionId,
@@ -212,18 +214,19 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
             await this.sessionManager.sendMessage(message.sessionId, message.message);
             this.outputChannel.appendLine(`✅ Message sent successfully to session: ${message.sessionId}`);
             
-            // Send success feedback
+            // Send success feedback (no response yet - it will come via JSONL monitoring)
             this.sendMessage({
-              command: 'messageSent',
+              command: 'messageResponse',
               sessionId: message.sessionId,
               success: true
             });
           } catch (error) {
             this.outputChannel.appendLine(`❌ Failed to send message: ${error}`);
             this.sendMessage({
-              command: 'error',
-              message: `Failed to send message: ${error}`,
-              sessionId: message.sessionId
+              command: 'messageResponse',
+              sessionId: message.sessionId,
+              success: false,
+              error: `Failed to send message: ${error}`
             });
           }
           break;

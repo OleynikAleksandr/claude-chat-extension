@@ -6,12 +6,15 @@
 
 import * as vscode from 'vscode';
 import { Session, Message } from '../types/Session';
+import { JsonlResponseMonitor } from '../monitors/JsonlResponseMonitor';
 
 export class DualSessionManager {
   private sessions: Map<string, Session> = new Map();
   private activeSessionId: string | null = null;
   private readonly maxSessions = 2;
   private readonly messageHistoryLimit = 100;
+  private jsonlMonitor: JsonlResponseMonitor;
+  private sessionMonitoringStatus: Map<string, boolean> = new Map(); // Отслеживание статуса мониторинга
   
   // Event callbacks
   private onSessionCreatedCallback?: (session: Session) => void;
@@ -21,6 +24,12 @@ export class DualSessionManager {
   private onMessageReceivedCallback?: (sessionId: string, message: Message) => void;
 
   constructor(private outputChannel: vscode.OutputChannel) {
+    // **ПОТОК 2: Terminal → Extension**
+    this.jsonlMonitor = new JsonlResponseMonitor(outputChannel);
+    this.jsonlMonitor.onResponse((data) => {
+      this.handleResponseFromTerminal(data.sessionId, data.response);
+    });
+    
     this.setupTerminalEventListeners();
   }
 
@@ -59,6 +68,10 @@ export class DualSessionManager {
       // Make this session active
       await this.switchToSession(sessionId);
 
+      // **НЕ запускаем JSONL мониторинг при создании - только после первого сообщения**
+      this.sessionMonitoringStatus.set(sessionId, false);
+      this.outputChannel.appendLine(`📡 JSONL monitoring will start after first message for session: ${sessionName}`);
+
       this.outputChannel.appendLine(`Session created successfully: ${sessionName}`);
       this.fireEvent('sessionCreated', session);
 
@@ -78,6 +91,10 @@ export class DualSessionManager {
     }
 
     this.outputChannel.appendLine(`Closing session: ${session.name} (${sessionId})`);
+
+    // **Останавливаем JSONL мониторинг для закрываемой сессии**
+    this.jsonlMonitor.stopMonitoring(sessionId);
+    this.sessionMonitoringStatus.delete(sessionId);
 
     // Close terminal
     session.terminal.dispose();
@@ -142,9 +159,9 @@ export class DualSessionManager {
       throw new Error(`Session ${sessionId} is not ready (status: ${session.status})`);
     }
 
-    this.outputChannel.appendLine(`Sending message to session ${sessionId}: ${message}`);
+    this.outputChannel.appendLine(`📤 Sending message to session ${sessionId}: ${message}`);
 
-    // Add message to history
+    // Add user message to history
     const messageObj: Message = {
       id: this.generateMessageId(),
       content: message,
@@ -156,13 +173,82 @@ export class DualSessionManager {
     session.messages.push(messageObj);
     this.trimMessageHistory(session);
 
-    // Send to terminal
-    await this.executeWithRetry(session.terminal, message);
+    // Fire event for user message
+    this.fireEvent('messageReceived', sessionId, messageObj);
+
+    // **ПОТОК 1: Extension → Terminal** 
+    // Простая отправка сообщения в терминал с автоматическим Enter
+    session.terminal.sendText(message, true);
+    
+    // Дополнительная гарантия Enter для Claude CLI с увеличенной паузой для длинных сообщений
+    const delay = Math.max(500, message.length * 2); // Минимум 500ms, +2ms за символ
+    this.outputChannel.appendLine(`⏰ Waiting ${delay}ms before additional Enter for message length: ${message.length}`);
+    await new Promise(resolve => setTimeout(resolve, delay));
+    session.terminal.sendText('', true);
+    
+    // **ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 1: Запуск JSONL мониторинга после первого сообщения**
+    const isMonitoringStarted = this.sessionMonitoringStatus.get(sessionId);
+    if (!isMonitoringStarted) {
+      this.outputChannel.appendLine(`🚀 Starting JSONL monitoring after first message for session: ${session.name}`);
+      this.sessionMonitoringStatus.set(sessionId, true);
+      
+      // Задержка перед поиском JSONL файла (Claude Code создает файл после обработки сообщения)
+      this.outputChannel.appendLine(`⏳ Waiting 3 seconds for Claude Code to create new JSONL file...`);
+      setTimeout(() => {
+        this.jsonlMonitor.startMonitoring(session.id, session.name);
+        this.outputChannel.appendLine(`✅ JSONL monitoring started with delay for session: ${session.name}`);
+      }, 3000); // 3 секунды задержка
+    }
+    
+    // **ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 2: Принудительное обновление терминала для длинных сообщений**
+    if (message.length > 200) { // Для сообщений длиннее 200 символов
+      this.outputChannel.appendLine(`🔄 Force refreshing terminal for long message (${message.length} chars)`);
+      
+      // Показать и сфокусировать терминал
+      session.terminal.show(true);
+      
+      // Дополнительная пауза для визуального обновления
+      await new Promise(resolve => setTimeout(resolve, 200));
+      
+      // Принудительный фокус через команду VS Code
+      try {
+        await vscode.commands.executeCommand('workbench.action.terminal.focus');
+        this.outputChannel.appendLine(`✅ Terminal focus command executed`);
+      } catch (error) {
+        this.outputChannel.appendLine(`⚠️ Terminal focus command failed: ${error}`);
+      }
+    }
+    
+    // Update last active time
+    session.lastActiveAt = new Date();
+
+    this.outputChannel.appendLine(`✅ Message sent to terminal: ${session.name}`);
+  }
+
+  /**
+   * **ПОТОК 2: Terminal → Extension**
+   * Обработка ответов, полученных от Claude Code через JSONL мониторинг
+   */
+  private handleResponseFromTerminal(sessionId: string, response: Message): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      this.outputChannel.appendLine(`⚠️ Received response for unknown session: ${sessionId}`);
+      return;
+    }
+
+    this.outputChannel.appendLine(`📨 Processing response for session ${session.name}: ${response.content.substring(0, 100)}...`);
+
+    // Добавляем ответ в историю сессии
+    session.messages.push(response);
+    this.trimMessageHistory(session);
 
     // Update last active time
     session.lastActiveAt = new Date();
 
-    this.fireEvent('messageReceived', sessionId, messageObj);
+    // Fire event для assistant message
+    this.fireEvent('messageReceived', sessionId, response);
+
+    this.outputChannel.appendLine(`✅ Response added to session: ${session.name}`);
   }
 
   // Getters
@@ -286,14 +372,6 @@ export class DualSessionManager {
     }
   }
 
-  private async executeWithRetry(terminal: vscode.Terminal, command: string): Promise<void> {
-    // Send command with auto-Enter
-    terminal.sendText(command, true);
-    
-    // Critical: Additional Enter for Claude CLI
-    await new Promise(resolve => setTimeout(resolve, 50));
-    terminal.sendText('', true);
-  }
 
   private setupTerminalEventListeners(): void {
     vscode.window.onDidCloseTerminal((closedTerminal) => {
@@ -349,11 +427,11 @@ export class DualSessionManager {
   }
 
   private generateSessionId(): string {
-    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `session_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   private generateMessageId(): string {
-    return `msg_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   }
 
   // Event handling

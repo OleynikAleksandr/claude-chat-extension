@@ -1,8 +1,8 @@
 {
   "name": "claude-chat",
   "displayName": "Claude Chat",
-  "description": "Bidirectional chat interface for Claude Code CLI - real-time communication with response capture and processing",
-  "version": "0.5.0",
+  "description": "First stable VS Code extension for bidirectional real-time communication with Claude Code CLI",
+  "version": "0.6.5",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -10,12 +10,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/OleynikAleksandr/claude-chat-extension.git"
+    "url": "https://github.com/OleynikAleksandr/ClaudeCodeBridge.git"
   },
   "bugs": {
-    "url": "https://github.com/OleynikAleksandr/claude-chat-extension/issues"
+    "url": "https://github.com/OleynikAleksandr/ClaudeCodeBridge/issues"
   },
-  "homepage": "https://github.com/OleynikAleksandr/claude-chat-extension#readme",
+  "homepage": "https://github.com/OleynikAleksandr/ClaudeCodeBridge#readme",
   "keywords": [
     "claude",
     "chat",
@@ -23,7 +23,11 @@
     "terminal",
     "anthropic",
     "ai",
-    "vscode-extension"
+    "vscode-extension",
+    "bidirectional",
+    "real-time",
+    "bridge",
+    "claude-code"
   ],
   "engines": {
     "vscode": "^1.85.0"
@@ -68,6 +72,11 @@
       {
         "command": "claudeChat.showStatus",
         "title": "Claude Chat: Show Terminal Status",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.sendBidirectional",
+        "title": "Claude Chat: Send Bidirectional Message",
         "category": "Claude Chat"
       },
       {
