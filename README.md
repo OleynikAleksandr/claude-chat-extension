@@ -2,9 +2,12 @@
 
 🚀 **VS Code extension for seamless Claude Code CLI integration with Multi-Session support**
 
+## ⚠️ **IMPORTANT: One-Way Communication Only**
+**This extension sends messages FROM VS Code TO Claude Code CLI terminals. Claude's responses appear in the terminal, NOT back in the chat interface. The chat serves as an input method to send messages to Claude CLI sessions.**
+
 Advanced chat interface that enables managing multiple parallel Claude CLI sessions within VS Code. Send messages to different Claude instances and switch between sessions seamlessly.
 
-![Claude Chat Extension Demo](https://img.shields.io/badge/VS%20Code-Extension-blue) ![Version](https://img.shields.io/badge/version-0.4.0-brightgreen) ![Status](https://img.shields.io/badge/status-MVP%202.0%20Ready-success) ![Multi-Session](https://img.shields.io/badge/Multi--Session-Enabled-orange)
+![Claude Chat Extension Demo](https://img.shields.io/badge/VS%20Code-Extension-blue) ![Version](https://img.shields.io/badge/version-0.4.3-brightgreen) ![Status](https://img.shields.io/badge/status-Production%20Ready-success) ![Multi-Session](https://img.shields.io/badge/Multi--Session-Enabled-orange)
 
 ## ✨ Features
 
@@ -28,10 +31,10 @@ Advanced chat interface that enables managing multiple parallel Claude CLI sessi
 
 ### Installation
 
-1. Download the latest release [`claude-chat-0.4.0.vsix`](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
+1. Download the latest release [`claude-chat-0.4.3.vsix`](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
 2. Install in VS Code:
    ```bash
-   code --install-extension claude-chat-0.4.0.vsix
+   code --install-extension claude-chat-0.4.3.vsix
    ```
 3. Restart VS Code
 
