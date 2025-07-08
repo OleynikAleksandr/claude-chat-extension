@@ -1,17 +1,26 @@
 # Claude Chat Extension for VS Code
 
-🚀 **VS Code extension for seamless Claude Code CLI integration with Multi-Session support**
+🚀 **VS Code extension for bidirectional Claude Code CLI integration with Real-Time Communication**
 
-## ⚠️ **IMPORTANT: One-Way Communication Only**
-**This extension sends messages FROM VS Code TO Claude Code CLI terminals. Claude's responses appear in the terminal, NOT back in the chat interface. The chat serves as an input method to send messages to Claude CLI sessions.**
+## 🎉 **NEW: Bidirectional Communication Available!**
+**Version 0.5.0 introduces REAL-TIME bidirectional communication! Claude's responses are now captured and processed in real-time, delivered back to VS Code interface. Terminal mode still available as fallback.**
 
-Advanced chat interface that enables managing multiple parallel Claude CLI sessions within VS Code. Send messages to different Claude instances and switch between sessions seamlessly.
+Advanced chat interface with real-time bidirectional communication, multi-session support, and intelligent message processing for seamless Claude Code CLI integration.
 
-![Claude Chat Extension Demo](https://img.shields.io/badge/VS%20Code-Extension-blue) ![Version](https://img.shields.io/badge/version-0.4.5-brightgreen) ![Status](https://img.shields.io/badge/status-Production%20Ready-success) ![Multi-Session](https://img.shields.io/badge/Multi--Session-Enabled-orange)
+![Claude Chat Extension Demo](https://img.shields.io/badge/VS%20Code-Extension-blue) ![Version](https://img.shields.io/badge/version-0.5.0-brightgreen) ![Status](https://img.shields.io/badge/status-Bidirectional-success) ![Real-Time](https://img.shields.io/badge/Real--Time-Enabled-orange) ![Multi-Session](https://img.shields.io/badge/Multi--Session-Enabled-purple)
 
 ## ✨ Features
 
-### 🆕 **NEW in v0.4.0 - Multi-Session Support**
+### 🚀 **NEW in v0.5.0 - Bidirectional Real-Time Communication**
+- 🔄 **Real-Time Response Capture** - Claude's responses processed and delivered instantly
+- 🧠 **Smart Message Processing** - Filter text, thinking, tool_use, result, and error messages
+- 🎯 **Session Management** - Create, track, and resume communication sessions
+- ⚡ **Process Communication** - Direct Claude Code process spawning with `--output-format stream-json`
+- 🌍 **WSL Support** - Cross-platform compatibility for Windows Subsystem for Linux
+- 📊 **Stream Parsing** - Real-time JSON parsing with error recovery
+- 🛡️ **Fallback Mode** - Graceful fallback to terminal when process mode unavailable
+
+### 🆕 **Multi-Session Support (v0.4.0)**
 - 🔥 **Multiple Claude Sessions** - run up to 2 parallel Claude CLI instances
 - 🔄 **Session Switching** - seamlessly switch between different Claude conversations
 - 📑 **Tabbed Interface** - modern React UI with session tabs and status indicators  
@@ -31,16 +40,24 @@ Advanced chat interface that enables managing multiple parallel Claude CLI sessi
 
 ### Installation
 
-1. Download the latest release [`claude-chat-0.4.5.vsix`](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
+1. Download the latest release [`claude-chat-0.5.0.vsix`](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
 2. Install in VS Code:
    ```bash
-   code --install-extension claude-chat-0.4.5.vsix
+   code --install-extension claude-chat-0.5.0.vsix
    ```
 3. Restart VS Code
+4. Ensure Claude CLI is available in PATH
 
 ### Usage
 
-#### 🔥 **Multi-Session Mode (NEW)**
+#### 🚀 **Bidirectional Real-Time Communication (NEW v0.5.0)**
+1. **Test Bidirectional Mode**: Open Command Palette (`Cmd+Shift+P`) → `Claude Chat: Send Bidirectional Message`
+2. **Enter your message** in the input dialog
+3. **Watch real-time response** captured and processed automatically
+4. **Check Output Channel** "Claude Chat" for detailed logs
+5. **Configurable filtering** for different message types
+
+#### 🔥 **Multi-Session Mode (v0.4.0)**
 1. **Open Multi-Session**: `Ctrl+Shift+M` (or `Cmd+Shift+M` on Mac)
 2. **Create new session**: `Ctrl+Shift+N` or click "+" button  
 3. **Switch sessions**: `Ctrl+Shift+S` or click session tabs

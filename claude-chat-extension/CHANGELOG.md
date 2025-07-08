@@ -5,6 +5,62 @@ All notable changes to the Claude Chat Extension project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-07-08 🚀 **Bidirectional Communication - Real-Time Integration**
+
+### 🎉 **BREAKTHROUGH: Real-Time Bidirectional Communication**
+**This release implements full bidirectional communication with Claude Code CLI - responses are captured and processed in real-time!**
+
+### ✨ **New Features**
+- **Real-Time Communication**: Implemented Phase 1 of bidirectional communication plan
+- **Process Management**: New ClaudeProcessManager for spawning and managing Claude Code processes
+- **Stream Parsing**: Real-time JSON stream parsing with error recovery
+- **Message Filtering**: Configurable filtering for text/thinking/tool_use/result/error messages
+- **Session Management**: Create, track, and resume communication sessions
+- **Enhanced Terminal Manager**: Extended TerminalManager with bidirectional capabilities
+- **WSL Support**: Cross-platform compatibility for Windows Subsystem for Linux
+
+### 🔧 **Technical Implementation**
+- **ClaudeProcessManager**: Manages Claude Code child processes with `--output-format stream-json`
+- **StreamJsonParser**: Handles real-time JSON stream parsing with buffer management
+- **MessageTypeHandler**: Processes and filters different message types from Claude Code
+- **EnhancedTerminalManager**: Extends existing TerminalManager with real-time features
+
+### 🎯 **VS Code Integration**
+- **New Command**: `claudeChat.sendBidirectional` for testing real-time communication
+- **Automatic Detection**: Claude CLI availability detection on startup
+- **Fallback Mode**: Graceful fallback to terminal mode when process mode unavailable
+- **Debug Logging**: Enhanced output channel logging for troubleshooting
+
+### 📁 **Architecture**
+```
+/src/real-time-communication/
+├── ClaudeProcessManager.ts    - Process spawning and management
+├── StreamJsonParser.ts        - JSON stream parsing
+├── MessageTypeHandler.ts      - Message filtering and processing  
+├── EnhancedTerminalManager.ts - Main bidirectional manager
+└── index.ts                   - Exports
+```
+
+### 🔄 **Communication Flow**
+1. **User Input** → EnhancedTerminalManager
+2. **Process Spawn** → Claude Code with `--output-format stream-json`
+3. **Real-Time Capture** → StreamJsonParser processes JSON stream
+4. **Message Processing** → MessageTypeHandler filters and formats responses
+5. **Response Delivery** → Back to VS Code interface
+
+### ⚡ **Performance**
+- **Real-Time**: Immediate response capture and processing
+- **Efficient**: Minimal overhead with stream processing
+- **Robust**: Error recovery and fallback mechanisms
+- **Scalable**: Session-based architecture for multiple conversations
+
+### 🔮 **Roadmap Progress**
+- ✅ **Phase 1**: Real-Time Communication (COMPLETED)
+- 🔄 **Phase 2**: Persistence & History (Next)
+- 🔄 **Phase 3**: Analytics & Monitoring (Future)
+
+---
+
 ## [0.4.5] - 2025-07-08 🌍 **International Release - English Interface**
 
 ### ⚠️ **IMPORTANT: One-Way Communication Only**
