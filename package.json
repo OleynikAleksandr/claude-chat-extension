@@ -2,7 +2,7 @@
   "name": "claude-chat",
   "displayName": "Claude Chat",
   "description": "Chat interface for Claude Code CLI in VS Code",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -33,7 +33,9 @@
   ],
   "activationEvents": [
     "onCommand:claudeChat.openChat",
-    "onView:claudeChatView"
+    "onView:claudeChatView",
+    "onCommand:claudeChat.openMultiSession",
+    "onView:claudeChatMultiSessionView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -67,6 +69,31 @@
         "command": "claudeChat.showStatus",
         "title": "Claude Chat: Show Terminal Status",
         "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.openMultiSession",
+        "title": "Claude Chat: Open Multi-Session Panel",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.createSession",
+        "title": "Claude Chat: Create New Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.switchSession",
+        "title": "Claude Chat: Switch Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.closeSession",
+        "title": "Claude Chat: Close Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.sessionDiagnostics",
+        "title": "Claude Chat: Show Session Diagnostics",
+        "category": "Claude Chat"
       }
     ],
     "viewsContainers": {
@@ -83,7 +110,14 @@
         {
           "type": "webview",
           "id": "claudeChatView",
-          "name": "Claude Chat"
+          "name": "Single Session",
+          "when": "config.claudeChat.showSingleSession != false"
+        },
+        {
+          "type": "webview",
+          "id": "claudeChatMultiSessionView",
+          "name": "Multi-Session",
+          "when": "config.claudeChat.showMultiSession != false"
         }
       ]
     },
@@ -107,6 +141,21 @@
         "command": "claudeChat.clearHistory",
         "key": "ctrl+shift+delete",
         "mac": "cmd+shift+delete"
+      },
+      {
+        "command": "claudeChat.openMultiSession",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      },
+      {
+        "command": "claudeChat.createSession",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n"
+      },
+      {
+        "command": "claudeChat.switchSession",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s"
       }
     ]
   },

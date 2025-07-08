@@ -107,15 +107,28 @@ export class DualSessionManager {
 
     this.outputChannel.appendLine(`Switching to session: ${session.name} (${sessionId})`);
 
+    // Hide current active terminal if any
+    const currentActiveSession = this.getActiveSession();
+    if (currentActiveSession && currentActiveSession.id !== sessionId) {
+      this.outputChannel.appendLine(`Hiding previous active session: ${currentActiveSession.name}`);
+      // VS Code automatically manages terminal visibility, but we track the state
+    }
+
     // Update last active time
     session.lastActiveAt = new Date();
 
-    // Show terminal
-    session.terminal.show();
+    // Critical: Show terminal and ensure it's focused
+    this.outputChannel.appendLine(`Showing terminal for session: ${session.name}`);
+    session.terminal.show(true); // preserveFocus = true to ensure terminal gets focus
+
+    // Additional show call for reliability (crucial for Claude CLI)
+    await new Promise(resolve => setTimeout(resolve, 100));
+    session.terminal.show(true);
 
     // Update active session
     this.activeSessionId = sessionId;
 
+    this.outputChannel.appendLine(`Session successfully switched to: ${session.name} (${sessionId})`);
     this.fireEvent('sessionSwitched', sessionId);
   }
 
@@ -171,6 +184,56 @@ export class DualSessionManager {
 
   canCreateNewSession(): boolean {
     return this.sessions.size < this.maxSessions;
+  }
+
+  // Terminal Health Monitoring
+  async checkSessionHealth(): Promise<Map<string, boolean>> {
+    const healthStatus = new Map<string, boolean>();
+    
+    for (const [sessionId, session] of this.sessions) {
+      try {
+        // Check if terminal still exists and is healthy
+        const pid = await session.terminal.processId;
+        const isHealthy = (pid !== undefined) && (session.status === 'ready' || session.status === 'starting');
+        
+        healthStatus.set(sessionId, isHealthy);
+        
+        if (!isHealthy) {
+          this.outputChannel.appendLine(`Session ${session.name} (${sessionId}) appears unhealthy. PID: ${pid}, Status: ${session.status}`);
+        }
+      } catch (error) {
+        this.outputChannel.appendLine(`Error checking health for session ${sessionId}: ${error}`);
+        healthStatus.set(sessionId, false);
+      }
+    }
+    
+    return healthStatus;
+  }
+
+  async getSessionDiagnostics(): Promise<string> {
+    const diagnostics: string[] = [];
+    diagnostics.push(`=== Session Manager Diagnostics ===`);
+    diagnostics.push(`Total sessions: ${this.sessions.size}/${this.maxSessions}`);
+    diagnostics.push(`Active session: ${this.activeSessionId || 'None'}`);
+    diagnostics.push(`Health check results:`);
+    
+    const healthStatus = await this.checkSessionHealth();
+    
+    for (const [sessionId, session] of this.sessions) {
+      const isHealthy = healthStatus.get(sessionId) || false;
+      const pid = await session.terminal.processId;
+      
+      diagnostics.push(`  • ${session.name} (${sessionId}):`);
+      diagnostics.push(`    - Status: ${session.status}`);
+      diagnostics.push(`    - Healthy: ${isHealthy ? '✅' : '❌'}`);
+      diagnostics.push(`    - PID: ${pid || 'Unknown'}`);
+      diagnostics.push(`    - Terminal Name: ${session.terminal.name}`);
+      diagnostics.push(`    - Messages: ${session.messages.length}`);
+      diagnostics.push(`    - Created: ${session.createdAt.toISOString()}`);
+      diagnostics.push(`    - Last Active: ${session.lastActiveAt.toISOString()}`);
+    }
+    
+    return diagnostics.join('\n');
   }
 
   // Private Methods
@@ -242,10 +305,38 @@ export class DualSessionManager {
     // Find session with this terminal
     for (const [sessionId, session] of this.sessions) {
       if (session.terminal === closedTerminal) {
-        this.outputChannel.appendLine(`Terminal closed for session: ${session.name} (${sessionId})`);
-        this.closeSession(sessionId).catch(error => {
-          this.outputChannel.appendLine(`Error cleaning up closed session: ${error}`);
-        });
+        this.outputChannel.appendLine(`Terminal closed by user for session: ${session.name} (${sessionId})`);
+        
+        // Mark session as closed but don't dispose terminal (already closed)
+        session.status = 'closed';
+        
+        // Remove from sessions
+        this.sessions.delete(sessionId);
+        
+        // Handle automatic session switching if this was the active session
+        if (this.activeSessionId === sessionId) {
+          this.outputChannel.appendLine(`Active session was closed, switching to another session...`);
+          
+          const remainingSessions = Array.from(this.sessions.keys());
+          if (remainingSessions.length > 0) {
+            // Automatically switch to the first available session
+            this.switchToSession(remainingSessions[0]).then(() => {
+              const newActiveSession = this.sessions.get(remainingSessions[0]);
+              this.outputChannel.appendLine(`Auto-switched to session: ${newActiveSession?.name} (${remainingSessions[0]})`);
+            }).catch(error => {
+              this.outputChannel.appendLine(`Error auto-switching session: ${error}`);
+              this.activeSessionId = null;
+            });
+          } else {
+            this.activeSessionId = null;
+            this.outputChannel.appendLine('No remaining sessions available');
+          }
+        }
+        
+        // Fire events
+        this.fireEvent('sessionClosed', sessionId);
+        this.fireEvent('sessionStatusChanged', sessionId, 'closed');
+        
         break;
       }
     }

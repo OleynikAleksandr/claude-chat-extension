@@ -142,14 +142,30 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
 
   private async handleWebviewMessage(message: WebviewMessage): Promise<void> {
     try {
-      this.outputChannel.appendLine(`Received message: ${JSON.stringify(message)}`);
+      this.outputChannel.appendLine(`📩 Received message: ${message.command} (${JSON.stringify(message)})`);
 
       switch (message.command) {
         case 'createSession':
           try {
+            this.outputChannel.appendLine(`🆕 Creating new session: ${message.name || 'Unnamed'}`);
             const session = await this.sessionManager.createSession(message.name);
-            this.outputChannel.appendLine(`Session created successfully: ${session.id}`);
+            this.outputChannel.appendLine(`✅ Session created successfully: ${session.name} (${session.id})`);
+            
+            // Send success feedback
+            this.sendMessage({
+              command: 'sessionCreated',
+              sessionId: session.id,
+              session: {
+                id: session.id,
+                name: session.name,
+                messages: session.messages,
+                status: session.status,
+                createdAt: session.createdAt,
+                lastActiveAt: session.lastActiveAt
+              }
+            });
           } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to create session: ${error}`);
             this.sendMessage({
               command: 'error',
               message: `Failed to create session: ${error}`
@@ -159,8 +175,11 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
 
         case 'switchSession':
           try {
+            this.outputChannel.appendLine(`🔄 Switching to session: ${message.sessionId}`);
             await this.sessionManager.switchToSession(message.sessionId);
+            this.outputChannel.appendLine(`✅ Successfully switched to session: ${message.sessionId}`);
           } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to switch session: ${error}`);
             this.sendMessage({
               command: 'error',
               message: `Failed to switch session: ${error}`,
@@ -171,8 +190,11 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
 
         case 'closeSession':
           try {
+            this.outputChannel.appendLine(`🗑️ Closing session: ${message.sessionId}`);
             await this.sessionManager.closeSession(message.sessionId);
+            this.outputChannel.appendLine(`✅ Successfully closed session: ${message.sessionId}`);
           } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to close session: ${error}`);
             this.sendMessage({
               command: 'error',
               message: `Failed to close session: ${error}`,
@@ -183,8 +205,18 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
 
         case 'sendMessage':
           try {
+            this.outputChannel.appendLine(`💬 Sending message to session ${message.sessionId}: "${message.message?.substring(0, 50)}..."`);
             await this.sessionManager.sendMessage(message.sessionId, message.message);
+            this.outputChannel.appendLine(`✅ Message sent successfully to session: ${message.sessionId}`);
+            
+            // Send success feedback
+            this.sendMessage({
+              command: 'messageSent',
+              sessionId: message.sessionId,
+              success: true
+            });
           } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to send message: ${error}`);
             this.sendMessage({
               command: 'error',
               message: `Failed to send message: ${error}`,
@@ -194,25 +226,47 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
           break;
 
         case 'renameSession':
-          // TODO: Implement session renaming
+          this.outputChannel.appendLine(`📝 Rename session requested (not yet implemented)`);
           this.sendMessage({
             command: 'error',
-            message: 'Session renaming not yet implemented'
+            message: 'Session renaming feature is coming soon!'
           });
           break;
 
         case 'getSessionState':
+          this.outputChannel.appendLine(`📊 Sending session state update`);
           this.sendSessionUpdate();
           break;
 
+        case 'healthCheck':
+          try {
+            this.outputChannel.appendLine(`🔍 Performing health check`);
+            const healthStatus = await this.sessionManager.checkSessionHealth();
+            this.sendMessage({
+              command: 'healthCheckResult',
+              healthStatus: Array.from(healthStatus.entries())
+            });
+          } catch (error) {
+            this.outputChannel.appendLine(`❌ Health check failed: ${error}`);
+            this.sendMessage({
+              command: 'error',
+              message: `Health check failed: ${error}`
+            });
+          }
+          break;
+
         default:
-          this.outputChannel.appendLine(`Unknown command: ${(message as any).command}`);
+          this.outputChannel.appendLine(`⚠️ Unknown command: ${(message as any).command}`);
+          this.sendMessage({
+            command: 'error',
+            message: `Unknown command: ${(message as any).command}`
+          });
       }
     } catch (error) {
-      this.outputChannel.appendLine(`Error handling message: ${error}`);
+      this.outputChannel.appendLine(`💥 Critical error handling message: ${error}`);
       this.sendMessage({
         command: 'error',
-        message: `Unexpected error: ${error}`
+        message: `Critical system error: ${error}`
       });
     }
   }
