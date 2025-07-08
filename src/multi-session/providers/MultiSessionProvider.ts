@@ -98,6 +98,9 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
       </head>
       <body>
         <div id="root"></div>
+        <script nonce="${nonce}">
+          const vscode = acquireVsCodeApi();
+        </script>
         <script nonce="${nonce}" src="${scriptUri}"></script>
       </body>
       </html>`;

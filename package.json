@@ -2,7 +2,7 @@
   "name": "claude-chat",
   "displayName": "Claude Chat",
   "description": "Chat interface for Claude Code CLI in VS Code",
-  "version": "0.4.0",
+  "version": "0.4.3",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -101,7 +101,7 @@
         {
           "id": "claude-chat-container",
           "title": "Claude Chat",
-          "icon": "$(comment-discussion)"
+          "icon": "media/icons/claude-chat.svg"
         }
       ]
     },
@@ -109,15 +109,9 @@
       "claude-chat-container": [
         {
           "type": "webview",
-          "id": "claudeChatView",
-          "name": "Single Session",
-          "when": "config.claudeChat.showSingleSession != false"
-        },
-        {
-          "type": "webview",
           "id": "claudeChatMultiSessionView",
-          "name": "Multi-Session",
-          "when": "config.claudeChat.showMultiSession != false"
+          "name": "Claude Chat",
+          "when": ""
         }
       ]
     },

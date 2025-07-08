@@ -160,6 +160,43 @@
   background-color: var(--vscode-button-hoverBackground);
 }
 
+/* Instructions styles */
+.instructions {
+  text-align: left;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.instructions p {
+  margin: 16px 0 8px 0;
+  color: var(--vscode-foreground);
+}
+
+.instructions ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 16px 0;
+}
+
+.instructions li {
+  padding: 8px 0;
+  color: var(--vscode-descriptionForeground);
+  line-height: 1.4;
+}
+
+.instructions li strong {
+  color: var(--vscode-foreground);
+}
+
+.instructions .tip {
+  background-color: var(--vscode-textBlockQuote-background);
+  border-left: 3px solid var(--vscode-textLink-foreground);
+  padding: 12px 16px;
+  margin: 16px 0 0 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+}
+
 .no-messages {
   display: flex;
   flex-direction: column;

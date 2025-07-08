@@ -108,12 +108,18 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled, pl
 
 const EmptyState: React.FC<{ onCreateSession: () => void }> = ({ onCreateSession }) => (
   <div className="empty-state">
-    <div className="empty-icon">💬</div>
-    <h3>No Active Session</h3>
-    <p>Create a new session to start chatting with Claude Code</p>
-    <button className="create-session-button" onClick={onCreateSession}>
-      Create Session
-    </button>
+    <div className="empty-icon">🚀</div>
+    <h3>Claude Chat Extension</h3>
+    <div className="instructions">
+      <p><strong>Как использовать расширение:</strong></p>
+      <ul>
+        <li>🆕 <strong>New Session</strong> — создаёт новый терминал и автоматически запускает Claude Code</li>
+        <li>💬 <strong>Чат</strong> — отправляйте сообщения напрямую в терминал Claude Code</li>
+        <li>🔄 <strong>Мультисессии</strong> — работайте с двумя сессиями одновременно</li>
+        <li>📝 <strong>Переключение</strong> — кликайте по вкладкам для смены активной сессии</li>
+      </ul>
+      <p className="tip">💡 <strong>Совет:</strong> Нажмите "+ New Session" выше, чтобы начать работу</p>
+    </div>
   </div>
 );
 
