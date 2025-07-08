@@ -1,0 +1,198 @@
+{
+  "name": "claude-chat",
+  "displayName": "Claude Chat",
+  "description": "First stable VS Code extension for bidirectional real-time communication with Claude Code CLI",
+  "version": "0.6.5",
+  "publisher": "aleksandr-oleynik",
+  "author": {
+    "name": "Aleksandr Oleynik",
+    "email": "contact@oleynik.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OleynikAleksandr/claude-chat-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OleynikAleksandr/claude-chat-extension/issues"
+  },
+  "homepage": "https://github.com/OleynikAleksandr/claude-chat-extension#readme",
+  "keywords": [
+    "claude",
+    "chat",
+    "cli",
+    "terminal",
+    "anthropic",
+    "ai",
+    "vscode-extension",
+    "bidirectional",
+    "real-time",
+    "bridge",
+    "claude-code"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:claudeChat.openChat",
+    "onView:claudeChatView",
+    "onCommand:claudeChat.openMultiSession",
+    "onView:claudeChatMultiSessionView"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeChat.openChat",
+        "title": "Claude Chat: Open Chat Panel",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.sendMessage",
+        "title": "Claude Chat: Send Message to Terminal",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.quickSend",
+        "title": "Claude Chat: Quick Send",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.togglePanel",
+        "title": "Claude Chat: Toggle Panel",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.clearHistory",
+        "title": "Claude Chat: Clear History",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.showStatus",
+        "title": "Claude Chat: Show Terminal Status",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.sendBidirectional",
+        "title": "Claude Chat: Send Bidirectional Message",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.openMultiSession",
+        "title": "Claude Chat: Open Multi-Session Panel",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.createSession",
+        "title": "Claude Chat: Create New Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.switchSession",
+        "title": "Claude Chat: Switch Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.closeSession",
+        "title": "Claude Chat: Close Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.sessionDiagnostics",
+        "title": "Claude Chat: Show Session Diagnostics",
+        "category": "Claude Chat"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-chat-container",
+          "title": "Claude Chat",
+          "icon": "media/icons/claude-chat.svg"
+        }
+      ]
+    },
+    "views": {
+      "claude-chat-container": [
+        {
+          "type": "webview",
+          "id": "claudeChatMultiSessionView",
+          "name": "Claude Chat",
+          "when": ""
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "claudeChat.openChat",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c"
+      },
+      {
+        "command": "claudeChat.quickSend",
+        "key": "ctrl+shift+enter",
+        "mac": "cmd+shift+enter"
+      },
+      {
+        "command": "claudeChat.togglePanel",
+        "key": "ctrl+shift+t",
+        "mac": "cmd+shift+t"
+      },
+      {
+        "command": "claudeChat.clearHistory",
+        "key": "ctrl+shift+delete",
+        "mac": "cmd+shift+delete"
+      },
+      {
+        "command": "claudeChat.openMultiSession",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      },
+      {
+        "command": "claudeChat.createSession",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n"
+      },
+      {
+        "command": "claudeChat.switchSession",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "tsc -p ./",
+    "build:webview": "webpack --mode production",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "watch:webview": "webpack --mode development --watch",
+    "pretest": "npm run build && npm run lint",
+    "lint": "eslint src --ext ts,tsx",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.6.0",
+    "css-loader": "^7.1.2",
+    "eslint": "^8.56.0",
+    "html-webpack-plugin": "^5.6.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  }
+}
