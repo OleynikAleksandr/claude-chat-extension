@@ -1,0 +1,191 @@
+/* TabBar Component Styles */
+
+.tab-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: var(--vscode-tab-inactiveBackground);
+  border-bottom: 1px solid var(--vscode-tab-border);
+  padding: 4px 8px;
+  min-height: 36px;
+  flex-shrink: 0;
+}
+
+.tabs-container {
+  display: flex;
+  gap: 2px;
+  flex-grow: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background-color: var(--vscode-tab-inactiveBackground);
+  border: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  user-select: none;
+  min-width: 120px;
+  max-width: 200px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.tab:hover {
+  background-color: var(--vscode-tab-hoverBackground);
+  border-color: var(--vscode-tab-hoverBorder);
+}
+
+.tab.active {
+  background-color: var(--vscode-tab-activeBackground);
+  border-bottom: 2px solid var(--vscode-focusBorder);
+  color: var(--vscode-tab-activeForeground);
+  font-weight: 500;
+}
+
+.tab.creating,
+.tab.starting {
+  position: relative;
+}
+
+.tab.creating .status-indicator,
+.tab.starting .status-indicator {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.tab.error {
+  border-left: 3px solid var(--vscode-errorForeground);
+  background-color: var(--vscode-inputValidation-errorBackground);
+}
+
+.tab-name {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-indicator {
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: var(--vscode-icon-foreground);
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.close-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-errorForeground);
+}
+
+.tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.new-session-button {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.new-session-button:hover:not(.disabled) {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.new-session-button.disabled {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-disabledForeground);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.session-count {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  padding: 4px 8px;
+  background-color: var(--vscode-badge-background);
+  border-radius: 12px;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* Status-specific styles */
+.status-creating {
+  color: #ffa500;
+}
+
+.status-starting {
+  color: #ffff00;
+}
+
+.status-ready {
+  color: #00ff00;
+}
+
+.status-error {
+  color: #ff0000;
+}
+
+.status-closed {
+  color: #808080;
+}
+
+/* Responsive design */
+@media (max-width: 400px) {
+  .tab {
+    min-width: 100px;
+    padding: 6px 8px;
+  }
+  
+  .tab-name {
+    font-size: 11px;
+  }
+  
+  .new-session-button {
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+}

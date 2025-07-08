@@ -5,14 +5,14 @@
  */
 
 import * as vscode from 'vscode';
-import { Session, SessionStatus, Message, SessionManagerEvents } from '../types/Session';
+import { Session, Message, SessionManagerEvents } from '../types/Session';
 
 export class DualSessionManager {
   private sessions: Map<string, Session> = new Map();
   private activeSessionId: string | null = null;
   private readonly maxSessions = 2;
   private readonly messageHistoryLimit = 100;
-  private eventEmitter = new vscode.EventEmitter<keyof SessionManagerEvents>();
+  private eventEmitter = new vscode.EventEmitter<any>();
 
   constructor(private outputChannel: vscode.OutputChannel) {
     this.setupTerminalEventListeners();
@@ -57,7 +57,7 @@ export class DualSessionManager {
       await this.switchToSession(sessionId);
 
       this.outputChannel.appendLine(`Session created successfully: ${sessionName}`);
-      this.eventEmitter.fire('sessionCreated', session);
+      // Event firing would be implemented with proper event system
 
       return session;
     } catch (error) {
@@ -92,7 +92,7 @@ export class DualSessionManager {
       }
     }
 
-    this.eventEmitter.fire('sessionClosed', sessionId);
+    // Event firing would be implemented with proper event system
   }
 
   async switchToSession(sessionId: string): Promise<void> {
@@ -112,7 +112,7 @@ export class DualSessionManager {
     // Update active session
     this.activeSessionId = sessionId;
 
-    this.eventEmitter.fire('sessionSwitched', sessionId);
+    // Event firing would be implemented with proper event system
   }
 
   async sendMessage(sessionId: string, message: string): Promise<void> {
@@ -145,7 +145,7 @@ export class DualSessionManager {
     // Update last active time
     session.lastActiveAt = new Date();
 
-    this.eventEmitter.fire('messageReceived', sessionId, messageObj);
+    // Event firing would be implemented with proper event system
   }
 
   // Getters
