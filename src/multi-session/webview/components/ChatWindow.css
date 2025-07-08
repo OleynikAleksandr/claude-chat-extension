@@ -188,6 +188,16 @@
   color: var(--vscode-foreground);
 }
 
+.instructions .warning {
+  background-color: var(--vscode-inputValidation-warningBackground);
+  border-left: 3px solid var(--vscode-inputValidation-warningBorder);
+  padding: 12px 16px;
+  margin: 0 0 16px 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  color: var(--vscode-inputValidation-warningForeground);
+}
+
 .instructions .tip {
   background-color: var(--vscode-textBlockQuote-background);
   border-left: 3px solid var(--vscode-textLink-foreground);

@@ -1,8 +1,8 @@
 {
   "name": "claude-chat",
   "displayName": "Claude Chat",
-  "description": "Chat interface for Claude Code CLI in VS Code",
-  "version": "0.4.3",
+  "description": "One-way chat interface for Claude Code CLI in VS Code - sends messages TO terminal, responses appear IN terminal",
+  "version": "0.4.5",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",

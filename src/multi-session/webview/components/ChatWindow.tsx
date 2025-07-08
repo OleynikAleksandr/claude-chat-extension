@@ -111,14 +111,15 @@ const EmptyState: React.FC<{ onCreateSession: () => void }> = ({ onCreateSession
     <div className="empty-icon">🚀</div>
     <h3>Claude Chat Extension</h3>
     <div className="instructions">
-      <p><strong>Как использовать расширение:</strong></p>
+      <p className="warning">⚠️ <strong>IMPORTANT:</strong> Messages are sent TO terminal, Claude responses appear IN terminal (one-way communication)</p>
+      <p><strong>How to use the extension:</strong></p>
       <ul>
-        <li>🆕 <strong>New Session</strong> — создаёт новый терминал и автоматически запускает Claude Code</li>
-        <li>💬 <strong>Чат</strong> — отправляйте сообщения напрямую в терминал Claude Code</li>
-        <li>🔄 <strong>Мультисессии</strong> — работайте с двумя сессиями одновременно</li>
-        <li>📝 <strong>Переключение</strong> — кликайте по вкладкам для смены активной сессии</li>
+        <li>🆕 <strong>New Session</strong> — creates a new terminal and automatically starts Claude Code</li>
+        <li>💬 <strong>Chat</strong> — send messages directly to Claude Code terminal</li>
+        <li>🔄 <strong>Multi-Session</strong> — work with two sessions simultaneously</li>
+        <li>📝 <strong>Switching</strong> — click tabs to change active session</li>
       </ul>
-      <p className="tip">💡 <strong>Совет:</strong> Нажмите "+ New Session" выше, чтобы начать работу</p>
+      <p className="tip">💡 <strong>Tip:</strong> Click "+ New Session" above to get started</p>
     </div>
   </div>
 );

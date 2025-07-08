@@ -5,6 +5,45 @@ All notable changes to the Claude Chat Extension project will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2025-07-08 🌍 **International Release - English Interface**
+
+### ⚠️ **IMPORTANT: One-Way Communication Only**
+**This extension sends messages FROM VS Code TO Claude Code CLI terminals. Claude's responses appear in the terminal, NOT back in the chat interface.**
+
+### 🎨 **Improved**
+- **Interface**: Translated all Russian text to English for international users
+- **Documentation**: Updated all version references to v0.4.5
+- **UX**: Professional English interface ready for global distribution
+
+### 🌍 **International Ready**
+This release makes the extension fully international with English-only interface, ready for VS Code Marketplace publication.
+
+---
+
+## [0.4.3] - 2025-07-08 🎯 **Production Ready - Base Release**
+
+### ⚠️ **IMPORTANT: One-Way Communication Only**
+**This extension sends messages FROM VS Code TO Claude Code CLI terminals. Claude's responses appear in the terminal, NOT back in the chat interface.**
+
+### 🔧 **Fixed**
+- **CRITICAL**: Fixed VS Code API connection by adding `acquireVsCodeApi()` initialization
+- **UI**: Resolved "Connection Error" in Multi-Session webview
+- **UX**: Added proper extension icon (SVG) visible in Activity Bar
+
+### 🎨 **Improved**
+- **Interface**: Removed redundant Single Session view, kept Multi-Session only
+- **UX**: Replaced placeholder "Create Session" button with helpful instructions in Russian
+- **Documentation**: Added critical one-way communication warning to all docs
+
+### 📦 **Technical**
+- **Icons**: Added `media/icons/claude-chat.svg` extension icon
+- **Styles**: Enhanced CSS for instruction display
+- **Package**: Updated package.json configuration for cleaner interface
+- **Git**: Restructured commit history with English messages for international repository
+
+### 🎯 **Ready for Production**
+This release establishes a stable base for the extension with all core functionality working properly. The one-way communication limitation is clearly documented for users.
+
 ## [0.4.0] - 2025-01-08 🚀 **MVP 2.0 - Multi-Session Support**
 
 ### 🎯 **MAJOR NEW FEATURES**
