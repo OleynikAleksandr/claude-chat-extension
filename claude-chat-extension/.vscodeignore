@@ -1,0 +1,78 @@
+# Source files (only compiled JS needed)
+src/**
+!src/**/*.js
+
+# TypeScript config
+tsconfig.json
+
+# Development files
+.vscode/
+.vscode-test/
+.vscode-test-web/
+
+# Node modules
+node_modules/
+
+# Build artifacts that shouldn't be in extension
+*.vsix
+
+# Git
+.git/
+.gitignore
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# Test files
+test/
+tests/
+**/*.test.js
+**/*.test.ts
+**/*.spec.js
+**/*.spec.ts
+
+# Coverage
+coverage/
+
+# ESLint
+.eslintrc.*
+.eslintcache
+
+# Prettier
+.prettierrc.*
+
+# Documentation source (keep compiled docs)
+doc/
+CONTRIBUTING.md
+TESTING.md
+
+# Development dependencies
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Environment files
+.env*
+
+# IDE files
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
