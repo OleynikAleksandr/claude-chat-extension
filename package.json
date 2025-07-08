@@ -2,7 +2,7 @@
   "name": "claude-chat",
   "displayName": "Claude Chat",
   "description": "Chat interface for Claude Code CLI in VS Code",
-  "version": "0.3.1",
+  "version": "0.4.3",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -33,7 +33,9 @@
   ],
   "activationEvents": [
     "onCommand:claudeChat.openChat",
-    "onView:claudeChatView"
+    "onView:claudeChatView",
+    "onCommand:claudeChat.openMultiSession",
+    "onView:claudeChatMultiSessionView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -67,6 +69,31 @@
         "command": "claudeChat.showStatus",
         "title": "Claude Chat: Show Terminal Status",
         "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.openMultiSession",
+        "title": "Claude Chat: Open Multi-Session Panel",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.createSession",
+        "title": "Claude Chat: Create New Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.switchSession",
+        "title": "Claude Chat: Switch Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.closeSession",
+        "title": "Claude Chat: Close Session",
+        "category": "Claude Chat"
+      },
+      {
+        "command": "claudeChat.sessionDiagnostics",
+        "title": "Claude Chat: Show Session Diagnostics",
+        "category": "Claude Chat"
       }
     ],
     "viewsContainers": {
@@ -74,7 +101,7 @@
         {
           "id": "claude-chat-container",
           "title": "Claude Chat",
-          "icon": "$(comment-discussion)"
+          "icon": "media/icons/claude-chat.svg"
         }
       ]
     },
@@ -82,8 +109,9 @@
       "claude-chat-container": [
         {
           "type": "webview",
-          "id": "claudeChatView",
-          "name": "Claude Chat"
+          "id": "claudeChatMultiSessionView",
+          "name": "Claude Chat",
+          "when": ""
         }
       ]
     },
@@ -107,26 +135,55 @@
         "command": "claudeChat.clearHistory",
         "key": "ctrl+shift+delete",
         "mac": "cmd+shift+delete"
+      },
+      {
+        "command": "claudeChat.openMultiSession",
+        "key": "ctrl+shift+m",
+        "mac": "cmd+shift+m"
+      },
+      {
+        "command": "claudeChat.createSession",
+        "key": "ctrl+shift+n",
+        "mac": "cmd+shift+n"
+      },
+      {
+        "command": "claudeChat.switchSession",
+        "key": "ctrl+shift+s",
+        "mac": "cmd+shift+s"
       }
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run compile",
+    "vscode:prepublish": "npm run build",
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "tsc -p ./",
+    "build:webview": "webpack --mode production",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
-    "pretest": "npm run compile && npm run lint",
-    "lint": "eslint src --ext ts",
+    "watch:webview": "webpack --mode development --watch",
+    "pretest": "npm run build && npm run lint",
+    "lint": "eslint src --ext ts,tsx",
     "test": "vscode-test"
   },
   "devDependencies": {
     "@types/node": "20.x",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
     "@types/vscode": "^1.85.0",
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
     "@vscode/test-cli": "^0.0.4",
     "@vscode/test-electron": "^2.3.8",
     "@vscode/vsce": "^3.6.0",
+    "css-loader": "^7.1.2",
     "eslint": "^8.56.0",
-    "typescript": "^5.3.3"
+    "html-webpack-plugin": "^5.6.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
   }
 }

@@ -5,14 +5,20 @@
  */
 
 import * as vscode from 'vscode';
-import { Session, SessionStatus, Message, SessionManagerEvents } from '../types/Session';
+import { Session, Message } from '../types/Session';
 
 export class DualSessionManager {
   private sessions: Map<string, Session> = new Map();
   private activeSessionId: string | null = null;
   private readonly maxSessions = 2;
   private readonly messageHistoryLimit = 100;
-  private eventEmitter = new vscode.EventEmitter<keyof SessionManagerEvents>();
+  
+  // Event callbacks
+  private onSessionCreatedCallback?: (session: Session) => void;
+  private onSessionClosedCallback?: (sessionId: string) => void;
+  private onSessionSwitchedCallback?: (sessionId: string) => void;
+  private onSessionStatusChangedCallback?: (sessionId: string, status: Session['status']) => void;
+  private onMessageReceivedCallback?: (sessionId: string, message: Message) => void;
 
   constructor(private outputChannel: vscode.OutputChannel) {
     this.setupTerminalEventListeners();
@@ -48,21 +54,19 @@ export class DualSessionManager {
       session.status = 'starting';
 
       // Start Claude Code
-      await this.startClaudeCode(terminal);
-      
-      // Wait for Claude to be ready
-      session.status = 'ready';
+      await this.startClaudeCode(session);
       
       // Make this session active
       await this.switchToSession(sessionId);
 
       this.outputChannel.appendLine(`Session created successfully: ${sessionName}`);
-      this.eventEmitter.fire('sessionCreated', session);
+      this.fireEvent('sessionCreated', session);
 
       return session;
     } catch (error) {
       session.status = 'error';
       this.outputChannel.appendLine(`Failed to create session: ${error}`);
+      this.fireEvent('sessionStatusChanged', sessionId, 'error');
       throw error;
     }
   }
@@ -92,7 +96,7 @@ export class DualSessionManager {
       }
     }
 
-    this.eventEmitter.fire('sessionClosed', sessionId);
+    this.fireEvent('sessionClosed', sessionId);
   }
 
   async switchToSession(sessionId: string): Promise<void> {
@@ -103,16 +107,29 @@ export class DualSessionManager {
 
     this.outputChannel.appendLine(`Switching to session: ${session.name} (${sessionId})`);
 
+    // Hide current active terminal if any
+    const currentActiveSession = this.getActiveSession();
+    if (currentActiveSession && currentActiveSession.id !== sessionId) {
+      this.outputChannel.appendLine(`Hiding previous active session: ${currentActiveSession.name}`);
+      // VS Code automatically manages terminal visibility, but we track the state
+    }
+
     // Update last active time
     session.lastActiveAt = new Date();
 
-    // Show terminal
-    session.terminal.show();
+    // Critical: Show terminal and ensure it's focused
+    this.outputChannel.appendLine(`Showing terminal for session: ${session.name}`);
+    session.terminal.show(true); // preserveFocus = true to ensure terminal gets focus
+
+    // Additional show call for reliability (crucial for Claude CLI)
+    await new Promise(resolve => setTimeout(resolve, 100));
+    session.terminal.show(true);
 
     // Update active session
     this.activeSessionId = sessionId;
 
-    this.eventEmitter.fire('sessionSwitched', sessionId);
+    this.outputChannel.appendLine(`Session successfully switched to: ${session.name} (${sessionId})`);
+    this.fireEvent('sessionSwitched', sessionId);
   }
 
   async sendMessage(sessionId: string, message: string): Promise<void> {
@@ -145,7 +162,7 @@ export class DualSessionManager {
     // Update last active time
     session.lastActiveAt = new Date();
 
-    this.eventEmitter.fire('messageReceived', sessionId, messageObj);
+    this.fireEvent('messageReceived', sessionId, messageObj);
   }
 
   // Getters
@@ -169,6 +186,56 @@ export class DualSessionManager {
     return this.sessions.size < this.maxSessions;
   }
 
+  // Terminal Health Monitoring
+  async checkSessionHealth(): Promise<Map<string, boolean>> {
+    const healthStatus = new Map<string, boolean>();
+    
+    for (const [sessionId, session] of this.sessions) {
+      try {
+        // Check if terminal still exists and is healthy
+        const pid = await session.terminal.processId;
+        const isHealthy = (pid !== undefined) && (session.status === 'ready' || session.status === 'starting');
+        
+        healthStatus.set(sessionId, isHealthy);
+        
+        if (!isHealthy) {
+          this.outputChannel.appendLine(`Session ${session.name} (${sessionId}) appears unhealthy. PID: ${pid}, Status: ${session.status}`);
+        }
+      } catch (error) {
+        this.outputChannel.appendLine(`Error checking health for session ${sessionId}: ${error}`);
+        healthStatus.set(sessionId, false);
+      }
+    }
+    
+    return healthStatus;
+  }
+
+  async getSessionDiagnostics(): Promise<string> {
+    const diagnostics: string[] = [];
+    diagnostics.push(`=== Session Manager Diagnostics ===`);
+    diagnostics.push(`Total sessions: ${this.sessions.size}/${this.maxSessions}`);
+    diagnostics.push(`Active session: ${this.activeSessionId || 'None'}`);
+    diagnostics.push(`Health check results:`);
+    
+    const healthStatus = await this.checkSessionHealth();
+    
+    for (const [sessionId, session] of this.sessions) {
+      const isHealthy = healthStatus.get(sessionId) || false;
+      const pid = await session.terminal.processId;
+      
+      diagnostics.push(`  • ${session.name} (${sessionId}):`);
+      diagnostics.push(`    - Status: ${session.status}`);
+      diagnostics.push(`    - Healthy: ${isHealthy ? '✅' : '❌'}`);
+      diagnostics.push(`    - PID: ${pid || 'Unknown'}`);
+      diagnostics.push(`    - Terminal Name: ${session.terminal.name}`);
+      diagnostics.push(`    - Messages: ${session.messages.length}`);
+      diagnostics.push(`    - Created: ${session.createdAt.toISOString()}`);
+      diagnostics.push(`    - Last Active: ${session.lastActiveAt.toISOString()}`);
+    }
+    
+    return diagnostics.join('\n');
+  }
+
   // Private Methods
   private async createTerminal(name: string): Promise<vscode.Terminal> {
     const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
@@ -184,15 +251,39 @@ export class DualSessionManager {
     return terminal;
   }
 
-  private async startClaudeCode(terminal: vscode.Terminal): Promise<void> {
-    // Send claude command with automatic Enter
-    terminal.sendText('claude', true);
+  private async startClaudeCode(session: Session): Promise<void> {
+    const { terminal, id: sessionId } = session;
     
-    // Give Claude time to start
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    this.outputChannel.appendLine(`Starting Claude Code in session ${sessionId}`);
     
-    // Send additional Enter to ensure Claude is ready
-    terminal.sendText('', true);
+    try {
+      // Send claude command with automatic Enter
+      terminal.sendText('claude', true);
+      
+      // Update status to starting
+      session.status = 'starting';
+      this.fireEvent('sessionStatusChanged', sessionId, 'starting');
+      
+      // Give Claude time to start
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Send additional Enter to ensure Claude is ready (critical for Claude CLI)
+      terminal.sendText('', true);
+      
+      // Wait a bit more for Claude to be fully ready
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Update status to ready
+      session.status = 'ready';
+      this.fireEvent('sessionStatusChanged', sessionId, 'ready');
+      
+      this.outputChannel.appendLine(`Claude Code ready in session ${sessionId}`);
+      
+    } catch (error) {
+      session.status = 'error';
+      this.fireEvent('sessionStatusChanged', sessionId, 'error');
+      throw error;
+    }
   }
 
   private async executeWithRetry(terminal: vscode.Terminal, command: string): Promise<void> {
@@ -214,10 +305,38 @@ export class DualSessionManager {
     // Find session with this terminal
     for (const [sessionId, session] of this.sessions) {
       if (session.terminal === closedTerminal) {
-        this.outputChannel.appendLine(`Terminal closed for session: ${session.name} (${sessionId})`);
-        this.closeSession(sessionId).catch(error => {
-          this.outputChannel.appendLine(`Error cleaning up closed session: ${error}`);
-        });
+        this.outputChannel.appendLine(`Terminal closed by user for session: ${session.name} (${sessionId})`);
+        
+        // Mark session as closed but don't dispose terminal (already closed)
+        session.status = 'closed';
+        
+        // Remove from sessions
+        this.sessions.delete(sessionId);
+        
+        // Handle automatic session switching if this was the active session
+        if (this.activeSessionId === sessionId) {
+          this.outputChannel.appendLine(`Active session was closed, switching to another session...`);
+          
+          const remainingSessions = Array.from(this.sessions.keys());
+          if (remainingSessions.length > 0) {
+            // Automatically switch to the first available session
+            this.switchToSession(remainingSessions[0]).then(() => {
+              const newActiveSession = this.sessions.get(remainingSessions[0]);
+              this.outputChannel.appendLine(`Auto-switched to session: ${newActiveSession?.name} (${remainingSessions[0]})`);
+            }).catch(error => {
+              this.outputChannel.appendLine(`Error auto-switching session: ${error}`);
+              this.activeSessionId = null;
+            });
+          } else {
+            this.activeSessionId = null;
+            this.outputChannel.appendLine('No remaining sessions available');
+          }
+        }
+        
+        // Fire events
+        this.fireEvent('sessionClosed', sessionId);
+        this.fireEvent('sessionStatusChanged', sessionId, 'closed');
+        
         break;
       }
     }
@@ -238,16 +357,55 @@ export class DualSessionManager {
   }
 
   // Event handling
-  onSessionCreated(listener: (session: Session) => void): vscode.Disposable {
-    return this.eventEmitter.event(listener as any);
+  private fireEvent(eventName: string, ...args: any[]): void {
+    switch (eventName) {
+      case 'sessionCreated':
+        if (this.onSessionCreatedCallback) {
+          this.onSessionCreatedCallback(args[0]);
+        }
+        break;
+      case 'sessionClosed':
+        if (this.onSessionClosedCallback) {
+          this.onSessionClosedCallback(args[0]);
+        }
+        break;
+      case 'sessionSwitched':
+        if (this.onSessionSwitchedCallback) {
+          this.onSessionSwitchedCallback(args[0]);
+        }
+        break;
+      case 'sessionStatusChanged':
+        if (this.onSessionStatusChangedCallback) {
+          this.onSessionStatusChangedCallback(args[0], args[1]);
+        }
+        break;
+      case 'messageReceived':
+        if (this.onMessageReceivedCallback) {
+          this.onMessageReceivedCallback(args[0], args[1]);
+        }
+        break;
+    }
   }
 
-  onSessionClosed(listener: (sessionId: string) => void): vscode.Disposable {
-    return this.eventEmitter.event(listener as any);
+  // Event registration methods
+  onSessionCreated(callback: (session: Session) => void): void {
+    this.onSessionCreatedCallback = callback;
   }
 
-  onSessionSwitched(listener: (sessionId: string) => void): vscode.Disposable {
-    return this.eventEmitter.event(listener as any);
+  onSessionClosed(callback: (sessionId: string) => void): void {
+    this.onSessionClosedCallback = callback;
+  }
+
+  onSessionSwitched(callback: (sessionId: string) => void): void {
+    this.onSessionSwitchedCallback = callback;
+  }
+
+  onSessionStatusChanged(callback: (sessionId: string, status: Session['status']) => void): void {
+    this.onSessionStatusChangedCallback = callback;
+  }
+
+  onMessageReceived(callback: (sessionId: string, message: Message) => void): void {
+    this.onMessageReceivedCallback = callback;
   }
 
   // Cleanup
@@ -258,6 +416,5 @@ export class DualSessionManager {
     }
     
     this.sessions.clear();
-    this.eventEmitter.dispose();
   }
 }

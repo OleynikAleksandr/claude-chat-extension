@@ -40,13 +40,17 @@ export type WebviewMessage =
   | { command: 'closeSession'; sessionId: string }
   | { command: 'sendMessage'; sessionId: string; message: string }
   | { command: 'renameSession'; sessionId: string; newName: string }
-  | { command: 'getSessionState' };
+  | { command: 'getSessionState' }
+  | { command: 'healthCheck' };
 
 export type ExtensionMessage = 
   | { command: 'sessionsUpdated'; sessions: Omit<Session, 'terminal'>[] }
   | { command: 'activeSessionChanged'; sessionId: string }
   | { command: 'sessionStatusChanged'; sessionId: string; status: SessionStatus }
   | { command: 'messageReceived'; sessionId: string; message: Message }
+  | { command: 'sessionCreated'; sessionId: string; session: Omit<Session, 'terminal'> }
+  | { command: 'messageSent'; sessionId: string; success: boolean }
+  | { command: 'healthCheckResult'; healthStatus: [string, boolean][] }
   | { command: 'error'; message: string; sessionId?: string };
 
 export interface SessionManagerEvents {
