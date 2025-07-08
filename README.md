@@ -50,13 +50,12 @@ Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webvie
 1. **Download the Extension**
    
    **📦 Direct Download:**
-   - [**Download v0.6.5 (.vsix)**](https://github.com/OleynikAleksandr/claude-chat-extension/releases/download/v0.6.5/claude-chat-0.6.5.vsix)
-   - [All Releases](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
+   - [Release 0.6.5](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
    
    **🔨 Build from Source:**
    ```bash
    git clone https://github.com/OleynikAleksandr/claude-chat-extension.git
-   cd claude-chat-extension/claude-chat-extension
+   cd claude-chat-extension
    npm install
    npm run build
    vsce package
