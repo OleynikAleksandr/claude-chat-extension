@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.6] - 2025-01-09
+
+### Changed
+- 🎨 **UI Welcome Screen**: Updated to prominently display bidirectional communication feature
+- 🎨 **Message Display**: Replaced emoji icons with professional text labels ("User", "Assistant")
+- 🎨 **Typography**: Reduced chat font size from 14px to 13px for better readability
+- 🎨 **Professional Look**: Removed decorative emojis from empty state
+- 🎨 **Message Headers**: Added proper styling with uppercase labels and color coding
+- 🧹 **Code Cleanup**: Removed version numbers from all source code comments
+
+### Improved
+- ✨ Color-coded message types: blue for User, green for Assistant
+- ✨ Enhanced message header styling with proper typography
+- ✨ More professional and clean user interface
+
 ## [0.6.5] - 2025-01-08
 
 ### 🎉 First Stable Release
