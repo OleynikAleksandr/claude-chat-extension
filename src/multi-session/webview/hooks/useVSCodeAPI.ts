@@ -1,6 +1,6 @@
 /**
  * React hook for VS Code API communication
- * Claude Chat Extension v0.4.0
+ * Claude Chat Extension
  */
 
 import { useState, useEffect, useCallback } from 'react';

@@ -1,6 +1,6 @@
 /**
  * Core types for Multi-Session Architecture
- * Claude Chat Extension v0.4.0
+ * Claude Chat Extension
  */
 
 import * as vscode from 'vscode';

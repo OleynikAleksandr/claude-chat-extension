@@ -102,6 +102,21 @@
 
 .message-type {
   font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.message-type.user {
+  color: var(--vscode-textLink-foreground);
+}
+
+.message-type.assistant {
+  color: var(--vscode-testing-iconPassed);
+}
+
+.message-type.system {
+  color: var(--vscode-descriptionForeground);
 }
 
 .message-time {
@@ -111,7 +126,7 @@
 .message-content {
   line-height: 1.4;
   white-space: pre-wrap;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 /* Empty States */
@@ -196,6 +211,17 @@
   border-radius: 0 4px 4px 0;
   font-size: 14px;
   color: var(--vscode-inputValidation-warningForeground);
+}
+
+.instructions .success {
+  background-color: var(--vscode-testing-iconPassed);
+  background-color: rgba(73, 214, 122, 0.15);
+  border-left: 3px solid var(--vscode-testing-iconPassed);
+  padding: 12px 16px;
+  margin: 0 0 16px 0;
+  border-radius: 0 4px 4px 0;
+  font-size: 14px;
+  color: var(--vscode-foreground);
 }
 
 .instructions .tip {

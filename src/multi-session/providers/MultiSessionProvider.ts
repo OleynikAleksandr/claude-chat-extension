@@ -1,7 +1,7 @@
 /**
  * Multi-Session Provider
  * Integrates DualSessionManager with VS Code webview
- * Claude Chat Extension v0.4.0
+ * Claude Chat Extension
  */
 
 import * as vscode from 'vscode';

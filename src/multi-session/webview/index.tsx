@@ -1,6 +1,6 @@
 /**
  * React Application Entry Point
- * Claude Chat Extension v0.4.0 - Multi-Session UI
+ * Claude Chat Extension - Multi-Session UI
  */
 
 import React from 'react';

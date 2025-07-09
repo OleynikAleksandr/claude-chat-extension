@@ -1,6 +1,6 @@
 /**
  * Main App Component - Multi-Session Claude Chat Interface
- * Claude Chat Extension v0.4.0
+ * Claude Chat Extension
  */
 
 import React, { useCallback } from 'react';

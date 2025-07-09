@@ -1,6 +1,6 @@
 /**
  * ChatWindow Component - Main chat interface for active session
- * Claude Chat Extension v0.4.0
+ * Claude Chat Extension
  */
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -36,7 +36,7 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
     <div className={`message-item ${message.type}`}>
       <div className="message-header">
         <span className={`message-type ${message.type}`}>
-          {message.type === 'user' ? '👤' : message.type === 'assistant' ? '🤖' : 'ℹ️'}
+          {message.type === 'user' ? 'User' : message.type === 'assistant' ? 'Assistant' : 'Info'}
         </span>
         <span className="message-time">{formatTime(message.timestamp)}</span>
       </div>
@@ -108,14 +108,13 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled, pl
 
 const EmptyState: React.FC<{ onCreateSession: () => void }> = ({ onCreateSession }) => (
   <div className="empty-state">
-    <div className="empty-icon">🚀</div>
     <h3>Claude Chat Extension</h3>
     <div className="instructions">
-      <p className="warning">⚠️ <strong>IMPORTANT:</strong> Messages are sent TO terminal, Claude responses appear IN terminal (one-way communication)</p>
+      <p className="success">✅ <strong>NEW in v0.6.5:</strong> Full bidirectional communication - see Claude's responses directly in the extension!</p>
       <p><strong>How to use the extension:</strong></p>
       <ul>
         <li>🆕 <strong>New Session</strong> — creates a new terminal and automatically starts Claude Code</li>
-        <li>💬 <strong>Chat</strong> — send messages directly to Claude Code terminal</li>
+        <li>💬 <strong>Chat</strong> — interactive conversation with Claude, responses appear in real-time</li>
         <li>🔄 <strong>Multi-Session</strong> — work with two sessions simultaneously</li>
         <li>📝 <strong>Switching</strong> — click tabs to change active session</li>
       </ul>
@@ -202,7 +201,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           <div className="no-messages">
             <div className="welcome-message">
               <h4>Welcome to {session.name}! 👋</h4>
-              <p>Start a conversation with Claude Code. Your messages will be sent directly to the terminal.</p>
+              <p>Start a conversation with Claude Code. Experience real-time bidirectional communication!</p>
             </div>
           </div>
         ) : (

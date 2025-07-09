@@ -1,6 +1,6 @@
 /**
  * TabBar Component - Session tab navigation
- * Claude Chat Extension v0.4.0
+ * Claude Chat Extension
  */
 
 import React from 'react';

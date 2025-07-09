@@ -1,7 +1,7 @@
 /**
  * Dual Session Manager
  * Manages up to 2 concurrent Claude Code sessions
- * Claude Chat Extension v0.4.0
+ * Claude Chat Extension
  */
 
 import * as vscode from 'vscode';
