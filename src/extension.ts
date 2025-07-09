@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 // Legacy imports - больше не используются
 // import { TerminalManager, TerminalSelectionStrategy } from './terminalManager';
 // import { BidirectionalBridge } from './bidirectional-bridge/BidirectionalBridge';
-import { MultiSessionProvider } from './multi-session/providers/MultiSessionProvider';
+import { EnhancedMultiSessionProvider } from './multi-session/providers/EnhancedMultiSessionProvider';
 
 export function activate(context: vscode.ExtensionContext) {
     console.log('🚀 Claude Chat extension activation started!');
@@ -40,15 +40,15 @@ export function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('📝 Skipping legacy webview provider registration');
     outputChannel.appendLine('✅ Using Multi-Session provider instead');
 
-    // Initialize Multi-Session Provider
-    outputChannel.appendLine('🔥 Initializing Multi-Session Provider...');
-    const multiSessionProvider = new MultiSessionProvider(context.extensionUri);
+    // Initialize Enhanced Multi-Session Provider
+    outputChannel.appendLine('🔥 Initializing Enhanced Multi-Session Provider...');
+    const multiSessionProvider = new EnhancedMultiSessionProvider(context.extensionUri);
     
-    outputChannel.appendLine('📝 Registering multi-session webview provider...');
+    outputChannel.appendLine('📝 Registering enhanced multi-session webview provider...');
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider('claudeChatMultiSessionView', multiSessionProvider)
     );
-    outputChannel.appendLine('✅ Multi-Session provider registered');
+    outputChannel.appendLine('✅ Enhanced Multi-Session provider registered');
 
     // Legacy debug command - отключен
     const debugTerminalsCommand = vscode.commands.registerCommand('claudeChat.debugTerminals', async () => {
@@ -99,7 +99,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const createSessionCommand = vscode.commands.registerCommand('claudeChat.createSession', async () => {
         try {
-            const sessionManager = multiSessionProvider.getSessionManager();
+            const sessionManager = multiSessionProvider.getBaseProvider().getSessionManager();
             if (!sessionManager.canCreateNewSession()) {
                 vscode.window.showWarningMessage('Максимальное количество сессий достигнуто (2)');
                 return;
@@ -117,7 +117,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (sessionName) {
-                await sessionManager.createSession(sessionName.trim());
+                await multiSessionProvider.createSession(sessionName.trim());
                 vscode.window.showInformationMessage(`Сессия "${sessionName}" создана`);
             }
         } catch (error) {
@@ -127,7 +127,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const switchSessionCommand = vscode.commands.registerCommand('claudeChat.switchSession', async () => {
         try {
-            const sessionManager = multiSessionProvider.getSessionManager();
+            const sessionManager = multiSessionProvider.getBaseProvider().getSessionManager();
             const sessions = sessionManager.getAllSessions();
             
             if (sessions.length === 0) {
@@ -146,7 +146,7 @@ export function activate(context: vscode.ExtensionContext) {
             });
 
             if (selected) {
-                await sessionManager.switchToSession(selected.sessionId);
+                await multiSessionProvider.switchToSession(selected.sessionId);
                 vscode.window.showInformationMessage(`Переключено на сессию: ${selected.label}`);
             }
         } catch (error) {
@@ -156,7 +156,7 @@ export function activate(context: vscode.ExtensionContext) {
 
     const closeSessionCommand = vscode.commands.registerCommand('claudeChat.closeSession', async () => {
         try {
-            const sessionManager = multiSessionProvider.getSessionManager();
+            const sessionManager = multiSessionProvider.getBaseProvider().getSessionManager();
             const sessions = sessionManager.getAllSessions();
             
             if (sessions.length === 0) {
@@ -183,7 +183,7 @@ export function activate(context: vscode.ExtensionContext) {
                 );
 
                 if (confirm === 'Да') {
-                    await sessionManager.closeSession(selected.sessionId);
+                    await multiSessionProvider.closeSession(selected.sessionId);
                     vscode.window.showInformationMessage(`Сессия "${selected.label}" закрыта`);
                 }
             }
@@ -194,12 +194,18 @@ export function activate(context: vscode.ExtensionContext) {
 
     const sessionDiagnosticsCommand = vscode.commands.registerCommand('claudeChat.sessionDiagnostics', async () => {
         try {
-            const sessionManager = multiSessionProvider.getSessionManager();
+            const sessionManager = multiSessionProvider.getBaseProvider().getSessionManager();
             const diagnostics = await sessionManager.getSessionDiagnostics();
+            
+            // Добавляем диагностику состояний
+            const stateStatistics = multiSessionProvider.getStateStatistics();
+            const enhancedDiagnostics = diagnostics + '\n\n' + 
+                '=== ENHANCED SESSION STATES ===\n' +
+                JSON.stringify(stateStatistics, null, 2);
             
             // Show diagnostics in a new document
             const doc = await vscode.workspace.openTextDocument({
-                content: diagnostics,
+                content: enhancedDiagnostics,
                 language: 'plaintext'
             });
             

@@ -15,15 +15,24 @@ export const App: React.FC = () => {
     activeSessionId,
     isLoading,
     error,
+    sessionStates,
     createSession,
     switchSession,
     closeSession,
     sendMessage,
-    refreshState
+    refreshState,
+    getSessionStates
   } = useVSCodeAPI();
 
   const activeSession = sessions.find(session => session.id === activeSessionId) || null;
   const canCreateNewSession = sessions.length < 2;
+
+  // Запрашиваем состояния сессий при загрузке
+  React.useEffect(() => {
+    if (sessions.length > 0) {
+      getSessionStates();
+    }
+  }, [sessions.length, getSessionStates]);
 
   const handleCreateSession = useCallback(() => {
     if (canCreateNewSession) {
@@ -69,12 +78,14 @@ export const App: React.FC = () => {
         onCloseSession={handleCloseSession}
         canCreateNewSession={canCreateNewSession}
         isLoading={isLoading}
+        sessionStates={sessionStates}
       />
       
       <ChatWindow
         session={activeSession}
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
+        sessionState={activeSession ? sessionStates.get(activeSession.id) : undefined}
       />
       
       {isLoading && (

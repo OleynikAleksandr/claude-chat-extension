@@ -7,6 +7,7 @@
 import * as vscode from 'vscode';
 import { Session, Message } from '../types/Session';
 import { JsonlResponseMonitor } from '../monitors/JsonlResponseMonitor';
+import { ProcessingStatusManager } from '../webview/components/ProcessingStatusManager';
 
 export class DualSessionManager {
   private sessions: Map<string, Session> = new Map();
@@ -15,20 +16,30 @@ export class DualSessionManager {
   private readonly messageHistoryLimit = 100;
   private jsonlMonitor: JsonlResponseMonitor;
   private sessionMonitoringStatus: Map<string, boolean> = new Map(); // Отслеживание статуса мониторинга
+  private processingStatusManager: ProcessingStatusManager;
   
   // Event callbacks
-  private onSessionCreatedCallback?: (session: Session) => void;
+  private onSessionCreatedCallbacks: Array<(session: Session) => void> = [];
   private onSessionClosedCallback?: (sessionId: string) => void;
   private onSessionSwitchedCallback?: (sessionId: string) => void;
   private onSessionStatusChangedCallback?: (sessionId: string, status: Session['status']) => void;
-  private onMessageReceivedCallback?: (sessionId: string, message: Message) => void;
+  private onMessageReceivedCallbacks: Array<(sessionId: string, message: Message) => void> = [];
 
   constructor(private outputChannel: vscode.OutputChannel) {
+    this.outputChannel.appendLine(`🏗️ DualSessionManager constructor called - instance created`);
+    
     // **ПОТОК 2: Terminal → Extension**
     this.jsonlMonitor = new JsonlResponseMonitor(outputChannel);
     this.jsonlMonitor.onResponse((data) => {
       this.handleResponseFromTerminal(data.sessionId, data.response);
     });
+    this.jsonlMonitor.onJsonlEntry((data) => {
+      this.handleJsonlEntry(data.sessionId, data.entry);
+    });
+    
+    // **ProcessingStatusManager для отслеживания состояния обработки**
+    this.processingStatusManager = new ProcessingStatusManager();
+    this.outputChannel.appendLine(`📊 ProcessingStatusManager initialized`);
     
     this.setupTerminalEventListeners();
   }
@@ -180,6 +191,10 @@ export class DualSessionManager {
     // Простая отправка сообщения в терминал с автоматическим Enter
     session.terminal.sendText(message, true);
     
+    // **Начинаем отслеживание обработки**
+    this.processingStatusManager.startProcessing(sessionId, messageObj.id);
+    this.outputChannel.appendLine(`📊 Started processing tracking for session ${sessionId} (message: ${messageObj.id})`);
+    
     // Дополнительная гарантия Enter для Claude CLI с увеличенной паузой для длинных сообщений
     const delay = Math.max(500, message.length * 2); // Минимум 500ms, +2ms за символ
     this.outputChannel.appendLine(`⏰ Waiting ${delay}ms before additional Enter for message length: ${message.length}`);
@@ -246,9 +261,37 @@ export class DualSessionManager {
     session.lastActiveAt = new Date();
 
     // Fire event для assistant message
+    this.outputChannel.appendLine(`🔄 Firing messageReceived event for ${sessionId}`);
     this.fireEvent('messageReceived', sessionId, response);
 
     this.outputChannel.appendLine(`✅ Response added to session: ${session.name}`);
+  }
+
+  private handleJsonlEntry(sessionId: string, entry: any): void {
+    // Преобразуем ClaudeCodeJsonlEntry в формат для TokenUsageTracker
+    const jsonlEntry = {
+      type: entry.type,
+      timestamp: entry.timestamp,
+      sessionId: sessionId,
+      message: entry.message
+    };
+
+    // **КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Запускаем новое отслеживание при каждом tool_use**
+    if (entry.type === 'assistant' && entry.message?.content) {
+      // Проверяем, есть ли tool_use в content
+      const hasToolUse = Array.isArray(entry.message.content) && 
+                        entry.message.content.some((item: any) => item.type === 'tool_use');
+      
+      if (hasToolUse) {
+        // Генерируем уникальный ID для tool operation
+        const toolOperationId = `tool_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+        this.processingStatusManager.startProcessing(sessionId, toolOperationId);
+        this.outputChannel.appendLine(`🔧 Started new processing tracking for tool_use in session ${sessionId} (${toolOperationId})`);
+      }
+    }
+
+    this.processingStatusManager.processJsonlEntry(jsonlEntry);
+    this.outputChannel.appendLine(`📊 Processed JSONL entry for session ${sessionId}: ${entry.type}`);
   }
 
   // Getters
@@ -258,6 +301,10 @@ export class DualSessionManager {
 
   getActiveSession(): Session | null {
     return this.activeSessionId ? this.sessions.get(this.activeSessionId) || null : null;
+  }
+
+  getProcessingStatusManager(): ProcessingStatusManager {
+    return this.processingStatusManager;
   }
 
   getAllSessions(): Session[] {
@@ -435,11 +482,19 @@ export class DualSessionManager {
   }
 
   // Event handling
-  private fireEvent(eventName: string, ...args: any[]): void {
+  public fireEvent(eventName: string, ...args: any[]): void {
     switch (eventName) {
       case 'sessionCreated':
-        if (this.onSessionCreatedCallback) {
-          this.onSessionCreatedCallback(args[0]);
+        this.outputChannel.appendLine(`🔄 FireEvent sessionCreated: sessionId=${args[0].id}, hasCallbacks=${this.onSessionCreatedCallbacks.length}`);
+        if (this.onSessionCreatedCallbacks.length > 0) {
+          this.outputChannel.appendLine(`🔄 Executing ${this.onSessionCreatedCallbacks.length} sessionCreated callbacks`);
+          this.onSessionCreatedCallbacks.forEach((callback, index) => {
+            this.outputChannel.appendLine(`🔄 Executing sessionCreated callback ${index + 1}`);
+            callback(args[0]);
+          });
+          this.outputChannel.appendLine(`🔄 All sessionCreated callbacks executed`);
+        } else {
+          this.outputChannel.appendLine(`🔄 No callbacks set for sessionCreated`);
         }
         break;
       case 'sessionClosed':
@@ -458,8 +513,15 @@ export class DualSessionManager {
         }
         break;
       case 'messageReceived':
-        if (this.onMessageReceivedCallback) {
-          this.onMessageReceivedCallback(args[0], args[1]);
+        this.outputChannel.appendLine(`🔄 FireEvent messageReceived: sessionId=${args[0]}, callbacks=${this.onMessageReceivedCallbacks.length}`);
+        if (this.onMessageReceivedCallbacks.length > 0) {
+          this.onMessageReceivedCallbacks.forEach((callback, index) => {
+            this.outputChannel.appendLine(`🔄 Executing callback ${index + 1}/${this.onMessageReceivedCallbacks.length}`);
+            callback(args[0], args[1]);
+          });
+          this.outputChannel.appendLine(`🔄 All callbacks executed for messageReceived`);
+        } else {
+          this.outputChannel.appendLine(`🔄 No callbacks set for messageReceived`);
         }
         break;
     }
@@ -467,7 +529,7 @@ export class DualSessionManager {
 
   // Event registration methods
   onSessionCreated(callback: (session: Session) => void): void {
-    this.onSessionCreatedCallback = callback;
+    this.onSessionCreatedCallbacks.push(callback);
   }
 
   onSessionClosed(callback: (sessionId: string) => void): void {
@@ -483,7 +545,8 @@ export class DualSessionManager {
   }
 
   onMessageReceived(callback: (sessionId: string, message: Message) => void): void {
-    this.onMessageReceivedCallback = callback;
+    this.outputChannel.appendLine(`🔧 Adding onMessageReceived callback (total: ${this.onMessageReceivedCallbacks.length + 1})`);
+    this.onMessageReceivedCallbacks.push(callback);
   }
 
   // Cleanup
@@ -492,6 +555,12 @@ export class DualSessionManager {
     for (const sessionId of this.sessions.keys()) {
       this.closeSession(sessionId).catch(console.error);
     }
+    
+    // Dispose ProcessingStatusManager
+    this.processingStatusManager.dispose();
+    
+    // Dispose JSONL monitor
+    this.jsonlMonitor.dispose();
     
     this.sessions.clear();
   }

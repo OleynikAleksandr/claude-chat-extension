@@ -5,12 +5,22 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Session, Message } from '../../types/Session';
+import { SessionStateIndicator } from './SessionStateIndicator';
+import { ProcessingStatusBar, TokenUsage } from './ProcessingStatusBar';
+import { processingStatusBridge, ProcessingSession } from './ProcessingStatusBridge';
 import './ChatWindow.css';
 
 interface ChatWindowProps {
   session: Omit<Session, 'terminal'> | null;
   onSendMessage: (sessionId: string, message: string) => void;
   isLoading?: boolean;
+  // Данные состояния сессии
+  sessionState?: {
+    state: 'ready' | 'working';
+    stateDescription: string;
+    stateEmoji: string;
+    isReadyForNewRequest: boolean;
+  };
 }
 
 interface MessageItemProps {
@@ -150,19 +160,46 @@ const SessionNotReady: React.FC<{ session: Omit<Session, 'terminal'> }> = ({ ses
 export const ChatWindow: React.FC<ChatWindowProps> = ({ 
   session, 
   onSendMessage, 
-  isLoading = false 
+  isLoading = false,
+  sessionState
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [processingStatus, setProcessingStatus] = useState<ProcessingSession | null>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [session?.messages]);
 
+  // Подписка на обновления статуса обработки
+  useEffect(() => {
+    if (!session) return;
+
+    const handleStatusUpdate = (processingSession: ProcessingSession) => {
+      setProcessingStatus(processingSession);
+    };
+
+    processingStatusBridge.subscribeToProcessingStatus(session.id, handleStatusUpdate);
+
+    return () => {
+      processingStatusBridge.unsubscribeFromProcessingStatus(session.id);
+    };
+  }, [session]);
+
   const handleSendMessage = (message: string) => {
     if (session) {
       onSendMessage(session.id, message);
     }
+  };
+
+  const handleInterruptProcessing = () => {
+    if (session) {
+      processingStatusBridge.interruptProcessing(session.id);
+    }
+  };
+
+  const handleHideProcessingStatus = () => {
+    setProcessingStatus(null);
   };
 
   // No session selected
@@ -189,7 +226,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div className="session-header">
         <div className="session-info">
           <span className="session-name">{session.name}</span>
-          <span className="session-status ready">Ready</span>
+          {sessionState ? (
+            <SessionStateIndicator
+              state={sessionState.state}
+              stateDescription={sessionState.stateDescription}
+              stateEmoji={sessionState.stateEmoji}
+              isReadyForNewRequest={sessionState.isReadyForNewRequest}
+              compact={true}
+            />
+          ) : (
+            <span className="session-status ready">Ready</span>
+          )}
         </div>
         <div className="message-count">
           {session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
@@ -209,6 +256,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             {session.messages.map(message => (
               <MessageItem key={message.id} message={message} />
             ))}
+            
+            {/* Плашка статуса обработки */}
+            {processingStatus && (
+              <ProcessingStatusBar
+                isVisible={true}
+                state={processingStatus.state}
+                startTime={processingStatus.startTime}
+                tokenUsage={processingStatus.tokenUsage}
+                toolCallsCount={processingStatus.toolCallsCount}
+                onInterrupt={handleInterruptProcessing}
+                onHide={handleHideProcessingStatus}
+              />
+            )}
+            
             <div ref={messagesEndRef} />
           </div>
         )}

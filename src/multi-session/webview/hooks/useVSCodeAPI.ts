@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Session, WebviewMessage, ExtensionMessage } from '../../types/Session';
+import { Session, WebviewMessage, ExtensionMessage, SessionStateData } from '../../types/Session';
 
 // VS Code API declaration
 declare const vscode: {
@@ -16,6 +16,7 @@ export interface VSCodeAPIHook {
   activeSessionId: string | null;
   isLoading: boolean;
   error: string | null;
+  sessionStates: Map<string, SessionStateData>;
   
   // Actions
   createSession: (name?: string) => void;
@@ -24,6 +25,7 @@ export interface VSCodeAPIHook {
   sendMessage: (sessionId: string, message: string) => void;
   renameSession: (sessionId: string, newName: string) => void;
   refreshState: () => void;
+  getSessionStates: () => void;
 }
 
 export function useVSCodeAPI(): VSCodeAPIHook {
@@ -31,6 +33,7 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [sessionStates, setSessionStates] = useState<Map<string, SessionStateData>>(new Map());
 
   // Send message to VS Code extension
   const sendMessage = useCallback((message: WebviewMessage) => {
@@ -92,6 +95,41 @@ export function useVSCodeAPI(): VSCodeAPIHook {
         }
         break;
 
+      case 'sessionStatesUpdated':
+        // Создаем новую Map из полученного объекта
+        console.log('🎭 Raw sessionStates received:', message.sessionStates);
+        const newSessionStates = new Map<string, SessionStateData>();
+        if (message.sessionStates && typeof message.sessionStates === 'object') {
+          console.log('🎭 Converting sessionStates object to Map...');
+          for (const [sessionId, stateData] of Object.entries(message.sessionStates)) {
+            console.log(`🎭 Adding state for session ${sessionId}:`, stateData);
+            newSessionStates.set(sessionId, stateData);
+          }
+        }
+        setSessionStates(newSessionStates);
+        console.log('🎭 Final sessionStates Map:', newSessionStates);
+        console.log('🎭 Map size:', newSessionStates.size);
+        break;
+
+      case 'sessionStateChanged':
+        setSessionStates(prev => {
+          const newStates = new Map(prev);
+          newStates.set(message.sessionId, message.sessionState);
+          return newStates;
+        });
+        console.log('Session state changed:', message.sessionId, message.sessionState);
+        break;
+
+      case 'processingStatusUpdate':
+        // Обрабатывается в ProcessingStatusBridge
+        console.log('Processing status update received for session:', message.sessionId);
+        break;
+
+      case 'processingStatusResponse':
+        // Обрабатывается в ProcessingStatusBridge
+        console.log('Processing status response received for session:', message.sessionId);
+        break;
+
       case 'error':
         setError(message.message);
         setIsLoading(false);
@@ -146,16 +184,22 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     sendMessage({ command: 'getSessionState' });
   }, [sendMessage]);
 
+  const getSessionStates = useCallback(() => {
+    sendMessage({ command: 'getSessionStates' });
+  }, [sendMessage]);
+
   return {
     sessions,
     activeSessionId,
     isLoading,
     error,
+    sessionStates,
     createSession,
     switchSession,
     closeSession,
     sendMessage: sendChatMessage,
     renameSession,
-    refreshState
+    refreshState,
+    getSessionStates
   };
 }

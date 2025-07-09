@@ -1,6 +1,6 @@
 # ClaudeCodeBridge 🌉
 
-[![Version](https://img.shields.io/badge/version-0.6.5-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.6.5)
+[![Version](https://img.shields.io/badge/version-0.8.4-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.8.4)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-brightgreen.svg)](https://code.visualstudio.com/)
 [![GitHub Release](https://img.shields.io/github/v/release/OleynikAleksandr/claude-chat-extension)](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
@@ -9,11 +9,19 @@
 
 ClaudeCodeBridge enables seamless integration between VS Code and Anthropic's Claude Code CLI, providing a native chat interface with full bidirectional communication capabilities.
 
-## 🎉 Version 0.6.5 - First Stable Release
+## 🚨 Version 0.8.4 - Critical Hotfix
 
-This release marks the first fully stable version with complete bidirectional communication between VS Code and Claude Code CLI.
+**IMPORTANT**: Version 0.8.3 was broken. Please use v0.8.4 which fixes critical webview loading issues.
 
-### ✨ Key Features
+### ✨ New in v0.8.4: Processing Status Bar + Fixes
+
+- **📊 Processing Status Bar**: Real-time display of processing time, token usage, and tool calls
+- **🔧 Critical Fix**: Resolved VS Code API conflict that broke v0.8.3 interface loading
+- **🟢 Simplified States**: Clean 2-state system (READY/WORKING) with animated indicators
+- **📈 Token Tracking**: Live monitoring of Claude Code token consumption from JSONL logs
+- **🎯 Smart Integration**: Seamless connection between React UI and Extension backend
+
+### 🏆 Core Features (from v0.6.5)
 
 - **🔄 Full Bidirectional Communication**: Real-time message exchange between VS Code extension and Claude Code CLI
 - **📨 ПОТОК 1 (Extension → Terminal)**: Send messages from webview directly to Claude Code terminal
@@ -26,7 +34,7 @@ This release marks the first fully stable version with complete bidirectional co
 
 ## 🏗️ Architecture
 
-ClaudeCodeBridge uses a clean **two-flow architecture**:
+ClaudeCodeBridge uses a **three-layer architecture** with state monitoring:
 
 ### ПОТОК 1: Extension → Terminal
 ```
@@ -37,6 +45,17 @@ VS Code Webview → Extension → Terminal → Claude Code CLI
 ```
 Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webview
 ```
+
+### 🆕 ПОТОК 3: State Detection (v0.7.0)
+```
+JSONL Analysis → State Detection → Enhanced Provider → Real-Time UI Updates
+```
+
+#### State Detection System
+- **JsonlPatternDetector**: Analyzes JSONL patterns for state transitions
+- **ClaudeStateManager**: Manages state transitions with smart timeouts
+- **DualSessionStateAdapter**: Integrates state detection with session management
+- **EnhancedMultiSessionProvider**: Provides state-aware webview interface
 
 ## 🚀 Quick Start
 
@@ -50,7 +69,8 @@ Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webvie
 1. **Download the Extension**
    
    **📦 Direct Download:**
-   - [Release 0.6.5](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
+   - [Release 0.7.0](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.7.0) - **Latest with State Monitoring**
+   - [Release 0.6.5](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.6.5) - Stable version
    
    **🔨 Build from Source:**
    ```bash
@@ -63,7 +83,7 @@ Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webvie
 
 2. **Install in VS Code**
    ```bash
-   code --install-extension claude-chat-0.6.5.vsix
+   code --install-extension claude-chat-0.7.0.vsix
    ```
 
 3. **Start Using**
@@ -86,6 +106,7 @@ Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webvie
    - Type your message in the input field
    - Press Enter or click Send
    - Watch as your message appears in the terminal and Claude responds back to the webview
+   - **🆕 v0.7.0**: Monitor real-time state changes: Ready → Processing → Responding → Ready
 
 ### Keyboard Shortcuts
 
@@ -99,6 +120,23 @@ Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webvie
 | Toggle Panel | `Cmd+Shift+T` | `Ctrl+Shift+T` |
 | Clear History | `Cmd+Shift+Delete` | `Ctrl+Shift+Delete` |
 
+### 🆕 Claude Code States (v0.7.0)
+
+ClaudeCodeBridge now shows real-time Claude Code states:
+
+| State | Emoji | Description | When You See It |
+|-------|-------|-------------|-----------------|
+| **Ready** | 🟢 | Ready for new messages | Claude is waiting for your input |
+| **Processing** | 🔄 | Processing your request | Claude is thinking about your message |
+| **Responding** | ✍️ | Generating response | Claude is writing the response |
+| **Idle** | ⏸️ | Waiting for activity | Session is inactive |
+
+**Visual Indicators:**
+- **Tab Bar**: Compact state indicators in session tabs
+- **Chat Window**: Detailed state information in session header
+- **Animations**: Spinning indicators during active processing
+- **Auto-sync**: All UI elements update simultaneously
+
 ## 🔧 Technical Details
 
 ### Multi-Session Architecture
@@ -106,7 +144,9 @@ Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webvie
 - **DualSessionManager**: Manages multiple Claude Code sessions
 - **JsonlResponseMonitor**: Monitors JSONL files for Claude responses
 - **SessionTracker**: Tracks session state and lifecycle
-- **MultiSessionProvider**: Provides webview interface
+- **🆕 EnhancedMultiSessionProvider**: State-aware webview interface
+- **🆕 ClaudeStateDetectionFacade**: Unified state detection system
+- **🆕 DualSessionStateAdapter**: Integrates state detection with session management
 
 ### JSONL Response Monitoring
 
@@ -123,6 +163,39 @@ interface ClaudeCodeJsonlEntry {
   timestamp: string;
 }
 ```
+
+### 🆕 State Detection System (v0.7.0)
+
+The extension now includes advanced state detection capabilities:
+
+```typescript
+// Claude Code State Types
+type ClaudeCodeState = 'idle' | 'processing' | 'responding' | 'ready';
+
+interface SessionStateData {
+    state: ClaudeCodeState;
+    stateDescription: string;
+    stateEmoji: string;
+    isReadyForNewRequest: boolean;
+}
+
+// State Detection Architecture
+class JsonlPatternDetector {
+    // Analyzes JSONL patterns for state transitions
+    detectStateFromJsonl(entries: JsonlEntry[]): ClaudeCodeState;
+}
+
+class ClaudeStateManager {
+    // Manages state transitions with smart timeouts
+    transitionState(from: ClaudeCodeState, to: ClaudeCodeState): void;
+}
+```
+
+**State Detection Features:**
+- **Pattern Analysis**: Intelligent JSONL pattern recognition
+- **Smart Timeouts**: Prevents false state transitions
+- **Debounce Logic**: Reduces UI flickering
+- **Auto-cleanup**: Removes stale state data
 
 ### Session Lifecycle
 
@@ -174,9 +247,16 @@ claude-chat-extension/
 │   │   ├── monitors/
 │   │   │   └── JsonlResponseMonitor.ts # JSONL monitoring
 │   │   ├── providers/
-│   │   │   └── MultiSessionProvider.ts # Webview provider
+│   │   │   ├── MultiSessionProvider.ts # Base webview provider
+│   │   │   └── 🆕 EnhancedMultiSessionProvider.ts # State-aware provider
 │   │   └── types/
 │   │       └── Session.ts              # Type definitions
+│   ├── 🆕 state-detection/              # State detection system
+│   │   ├── ClaudeStateDetectionFacade.ts # Main facade
+│   │   ├── types/ClaudeState.ts        # State type definitions
+│   │   ├── detectors/JsonlPatternDetector.ts # Pattern detection
+│   │   ├── managers/ClaudeStateManager.ts # State management
+│   │   └── adapters/DualSessionStateAdapter.ts # Integration adapter
 │   └── webview/                        # React webview components
 ├── media/                              # Icons and assets
 ├── package.json                        # Extension manifest

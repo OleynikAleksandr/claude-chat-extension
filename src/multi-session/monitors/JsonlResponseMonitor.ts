@@ -36,10 +36,16 @@ export interface ResponseDetected {
     response: Message;
 }
 
+export interface JsonlEntryDetected {
+    sessionId: string;
+    entry: ClaudeCodeJsonlEntry;
+}
+
 export class JsonlResponseMonitor {
     private watchers: Map<string, fs.FSWatcher> = new Map();
     private lastProcessedEntries: Map<string, number> = new Map();
     private onResponseCallback?: (data: ResponseDetected) => void;
+    private onJsonlEntryCallback?: (data: JsonlEntryDetected) => void;
 
     constructor(private outputChannel: vscode.OutputChannel) {}
 
@@ -95,6 +101,13 @@ export class JsonlResponseMonitor {
     }
 
     /**
+     * Установить callback для получения JSONL записей
+     */
+    onJsonlEntry(callback: (data: JsonlEntryDetected) => void): void {
+        this.onJsonlEntryCallback = callback;
+    }
+
+    /**
      * Проверить новые ответы в JSONL файле
      */
     private async checkForNewResponses(sessionId: string, sessionName: string, jsonlPath: string): Promise<void> {
@@ -108,6 +121,7 @@ export class JsonlResponseMonitor {
 
             const lastProcessed = this.lastProcessedEntries.get(sessionId) || 0;
             const newEntries: JsonlEntry[] = [];
+            const allNewJsonlEntries: ClaudeCodeJsonlEntry[] = [];
 
             for (const line of lines) {
                 try {
@@ -115,14 +129,19 @@ export class JsonlResponseMonitor {
                     
                     // Пробуем новый формат Claude Code
                     if (this.isClaudeCodeFormat(rawEntry)) {
-                        const entry = this.parseClaudeCodeEntry(rawEntry as ClaudeCodeJsonlEntry);
-                        if (entry) {
-                            const entryTime = new Date(rawEntry.timestamp).getTime();
+                        const entryTime = new Date(rawEntry.timestamp).getTime();
+                        
+                        // Все новые записи отправляем в ProcessingStatusManager
+                        if (entryTime > lastProcessed) {
+                            allNewJsonlEntries.push(rawEntry as ClaudeCodeJsonlEntry);
                             
-                            // Только новые записи после последней обработки
-                            if (entryTime > lastProcessed && entry.role === 'assistant') {
-                                newEntries.push(entry);
-                                this.outputChannel.appendLine(`✅ Parsed Claude Code format entry: ${entry.content.substring(0, 100)}...`);
+                            // Только assistant ответы добавляем в UI
+                            if (rawEntry.type === 'assistant') {
+                                const entry = this.parseClaudeCodeEntry(rawEntry as ClaudeCodeJsonlEntry);
+                                if (entry) {
+                                    newEntries.push(entry);
+                                    this.outputChannel.appendLine(`✅ Parsed Claude Code format entry: ${entry.content.substring(0, 100)}...`);
+                                }
                             }
                         }
                     } 
@@ -142,6 +161,16 @@ export class JsonlResponseMonitor {
                 } catch (parseError) {
                     this.outputChannel.appendLine(`❌ JSON parse error: ${parseError}`);
                     continue;
+                }
+            }
+
+            // Отправляем все JSONL записи в ProcessingStatusManager
+            for (const jsonlEntry of allNewJsonlEntries) {
+                if (this.onJsonlEntryCallback) {
+                    this.onJsonlEntryCallback({
+                        sessionId,
+                        entry: jsonlEntry
+                    });
                 }
             }
 

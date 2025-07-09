@@ -15,6 +15,13 @@ interface TabBarProps {
   onCloseSession: (sessionId: string) => void;
   canCreateNewSession: boolean;
   isLoading?: boolean;
+  // Состояния сессий
+  sessionStates?: Map<string, {
+    state: 'ready' | 'working';
+    stateDescription: string;
+    stateEmoji: string;
+    isReadyForNewRequest: boolean;
+  }>;
 }
 
 interface SessionTabProps {
@@ -22,6 +29,13 @@ interface SessionTabProps {
   isActive: boolean;
   onSelect: () => void;
   onClose: () => void;
+  // Состояние сессии
+  sessionState?: {
+    state: 'ready' | 'working';
+    stateDescription: string;
+    stateEmoji: string;
+    isReadyForNewRequest: boolean;
+  };
 }
 
 const StatusIndicator: React.FC<{ status: SessionStatus }> = ({ status }) => {
@@ -46,19 +60,42 @@ const StatusIndicator: React.FC<{ status: SessionStatus }> = ({ status }) => {
   );
 };
 
-const SessionTab: React.FC<SessionTabProps> = ({ session, isActive, onSelect, onClose }) => {
+const SessionTab: React.FC<SessionTabProps> = ({ session, isActive, onSelect, onClose, sessionState }) => {
+  // Debug лог состояний
+  React.useEffect(() => {
+    console.log(`🏷️ SessionTab ${session.name}: status=${session.status}, hasState=${!!sessionState}`);
+    if (sessionState) {
+      console.log(`🏷️ State for ${session.name}:`, sessionState);
+    }
+  }, [session.status, sessionState, session.name]);
+
   const handleClose = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClose();
   };
 
+  // Показываем только статус для не готовых сессий
+  const renderStateIndicator = () => {
+    if (session.status !== 'ready') {
+      return <StatusIndicator status={session.status} />;
+    }
+    return null;
+  };
+
+  const getTabTitle = () => {
+    if (session.status === 'ready' && sessionState) {
+      return `${session.name} - ${sessionState.stateDescription}`;
+    }
+    return `${session.name} - ${session.status}`;
+  };
+
   return (
     <div 
-      className={`tab ${isActive ? 'active' : ''} ${session.status}`}
+      className={`tab ${isActive ? 'active' : ''} ${session.status} ${sessionState ? `claude-state-${sessionState.state}` : ''}`}
       onClick={onSelect}
-      title={`${session.name} - ${session.status}`}
+      title={getTabTitle()}
     >
-      <StatusIndicator status={session.status} />
+      {renderStateIndicator()}
       <span className="tab-name">{session.name}</span>
       {session.status !== 'creating' && (
         <button 
@@ -80,7 +117,8 @@ export const TabBar: React.FC<TabBarProps> = ({
   onNewSession,
   onCloseSession,
   canCreateNewSession,
-  isLoading = false
+  isLoading = false,
+  sessionStates
 }) => {
   return (
     <div className="tab-bar">
@@ -92,6 +130,7 @@ export const TabBar: React.FC<TabBarProps> = ({
             isActive={session.id === activeSessionId}
             onSelect={() => onTabSwitch(session.id)}
             onClose={() => onCloseSession(session.id)}
+            sessionState={sessionStates?.get(session.id)}
           />
         ))}
       </div>
