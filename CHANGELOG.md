@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2025-07-09
+
+### Changed
+- 🧹 **Clean Architecture**: Reverted to stable v0.6.6 codebase as foundation for terminal integration
+- 🎯 **Focus**: Removed all ProcessingStatusBar experimental code to prepare for terminal-based solution
+- 🔄 **Version Jump**: Bumped to 0.9.0 to signify major architectural preparation for terminal integration
+- 📋 **Preparation**: Clean base for implementing real Claude Code CLI terminal embedding in next version
+
+### Removed
+- ❌ All ProcessingStatusBar components and related experimental code
+- ❌ JSONL parsing complexity that caused UI state management issues
+- ❌ state-detection modules that were causing display problems
+
+### Technical Details
+- 🏗️ Based on stable v0.6.6 commit (668e9b9) with proven bidirectional communication
+- 🎯 Prepared for xterm.js integration in upcoming versions
+- 🔗 Backup of experimental code preserved in backup-v0.8.6-processing-status-bar branch
+
 ## [0.6.6] - 2025-01-09
 
 ### Changed

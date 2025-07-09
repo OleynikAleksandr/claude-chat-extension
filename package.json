@@ -2,7 +2,7 @@
   "name": "claude-chat",
   "displayName": "Claude Chat",
   "description": "First stable VS Code extension for bidirectional real-time communication with Claude Code CLI",
-  "version": "0.6.6",
+  "version": "0.9.0",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
