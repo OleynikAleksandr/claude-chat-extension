@@ -16,8 +16,8 @@ Latest release with intelligent ServiceInfoBlock status detection based on Claud
 ### ✨ Key Features
 
 - **🔄 Full Bidirectional Communication**: Real-time message exchange between VS Code extension and Claude Code CLI
-- **📨 ПОТОК 1 (Extension → Terminal)**: Send messages from webview directly to Claude Code terminal
-- **📩 ПОТОК 2 (Terminal → Extension)**: Receive Claude responses back to webview in real-time
+- **📨 Flow 1 (Extension → Terminal)**: Send messages from webview directly to Claude Code terminal
+- **📩 Flow 2 (Terminal → Extension)**: Receive Claude responses back to webview in real-time
 - **🖥️ Multi-Session Support**: Manage multiple Claude Code sessions simultaneously with Map-based architecture
 - **⚡ Real-Time Response Monitoring**: Automatic detection and parsing of Claude Code responses
 - **🎯 Smart Status Detection**: Precise ServiceInfoBlock status based on stop_reason analysis
@@ -29,12 +29,12 @@ Latest release with intelligent ServiceInfoBlock status detection based on Claud
 
 ClaudeCodeBridge uses a clean **two-flow architecture**:
 
-### ПОТОК 1: Extension → Terminal
+### Flow 1: Extension → Terminal
 ```
 VS Code Webview → Extension → Terminal → Claude Code CLI
 ```
 
-### ПОТОК 2: Terminal → Extension  
+### Flow 2: Terminal → Extension  
 ```
 Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webview
 ```
