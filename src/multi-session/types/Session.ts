@@ -25,6 +25,46 @@ export interface Message {
   sessionId: string;
 }
 
+// 🎨 Enhanced Service Information Types
+export interface ServiceMessage {
+  id: string;
+  type: 'service';
+  sessionId: string;
+  timestamp: Date;
+  toolUse: ToolUseItem[];
+  thinking: string;
+  usage: UsageInfo;
+  status: ServiceStatus;
+  duration?: number;
+}
+
+export interface ToolUseItem {
+  id: string;
+  name: string;
+  input: any;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  duration?: number;
+  result?: any;
+  error?: string;
+}
+
+export interface UsageInfo {
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens?: number;
+  cache_read_input_tokens?: number;
+  service_tier?: string;
+  cost_estimate?: number;
+}
+
+export type ServiceStatus = 'initializing' | 'processing' | 'completed' | 'error';
+
+// 🎨 Service Information Events
+export interface ServiceInfoDetected {
+  sessionId: string;
+  serviceInfo: ServiceMessage;
+}
+
 export interface SessionConfig {
   enableMultiSession: boolean;
   maxSessions: number;
@@ -51,6 +91,7 @@ export type ExtensionMessage =
   | { command: 'sessionCreated'; sessionId: string; session: Omit<Session, 'terminal'> }
   | { command: 'messageResponse'; sessionId: string; success: boolean; response?: Message; error?: string }
   | { command: 'healthCheckResult'; healthStatus: [string, boolean][] }
+  | { command: 'serviceInfoReceived'; sessionId: string; serviceInfo: ServiceMessage }
   | { command: 'error'; message: string; sessionId?: string };
 
 export interface SessionManagerEvents {

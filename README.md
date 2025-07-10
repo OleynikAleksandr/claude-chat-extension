@@ -1,6 +1,6 @@
 # ClaudeCodeBridge 🌉
 
-[![Version](https://img.shields.io/badge/version-0.6.5-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.6.5)
+[![Version](https://img.shields.io/badge/version-0.10.2-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.10.2)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-brightgreen.svg)](https://code.visualstudio.com/)
 [![GitHub Release](https://img.shields.io/github/v/release/OleynikAleksandr/claude-chat-extension)](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
@@ -9,20 +9,21 @@
 
 ClaudeCodeBridge enables seamless integration between VS Code and Anthropic's Claude Code CLI, providing a native chat interface with full bidirectional communication capabilities.
 
-## 🎉 Version 0.6.5 - First Stable Release
+## 🎉 Version 0.10.2 - Smart Service Status Detection
 
-This release marks the first fully stable version with complete bidirectional communication between VS Code and Claude Code CLI.
+Latest release with intelligent ServiceInfoBlock status detection based on Claude Code JSONL analysis.
 
 ### ✨ Key Features
 
 - **🔄 Full Bidirectional Communication**: Real-time message exchange between VS Code extension and Claude Code CLI
 - **📨 ПОТОК 1 (Extension → Terminal)**: Send messages from webview directly to Claude Code terminal
 - **📩 ПОТОК 2 (Terminal → Extension)**: Receive Claude responses back to webview in real-time
-- **🖥️ Multi-Session Support**: Manage multiple Claude Code sessions simultaneously
+- **🖥️ Multi-Session Support**: Manage multiple Claude Code sessions simultaneously with Map-based architecture
 - **⚡ Real-Time Response Monitoring**: Automatic detection and parsing of Claude Code responses
-- **🎯 Smart Terminal Management**: Automatic Enter key handling and terminal refresh
-- **📁 JSONL File Monitoring**: Advanced file system watchers for Claude Code session files
-- **🚀 Optimized Performance**: 73% smaller extension size with cleaner architecture
+- **🎯 Smart Status Detection**: Precise ServiceInfoBlock status based on stop_reason analysis
+- **📊 Live Service Information**: Real-time tool usage, token counts, and processing status
+- **📁 Enhanced JSONL Monitoring**: Advanced file system watchers with intelligent caching
+- **🚀 Optimized Performance**: Dynamic positioning and memory-efficient processing
 
 ## 🏗️ Architecture
 

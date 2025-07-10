@@ -5,7 +5,7 @@
  */
 
 import * as vscode from 'vscode';
-import { Session, Message } from '../types/Session';
+import { Session, Message, ServiceMessage } from '../types/Session';
 import { JsonlResponseMonitor } from '../monitors/JsonlResponseMonitor';
 
 export class DualSessionManager {
@@ -22,12 +22,18 @@ export class DualSessionManager {
   private onSessionSwitchedCallback?: (sessionId: string) => void;
   private onSessionStatusChangedCallback?: (sessionId: string, status: Session['status']) => void;
   private onMessageReceivedCallback?: (sessionId: string, message: Message) => void;
+  private onServiceInfoReceivedCallback?: (sessionId: string, serviceInfo: ServiceMessage) => void;
 
   constructor(private outputChannel: vscode.OutputChannel) {
     // **ПОТОК 2: Terminal → Extension**
     this.jsonlMonitor = new JsonlResponseMonitor(outputChannel);
     this.jsonlMonitor.onResponse((data) => {
       this.handleResponseFromTerminal(data.sessionId, data.response);
+    });
+    
+    // 🔧 Обработка служебной информации от Claude Code
+    this.jsonlMonitor.onServiceInfo((data) => {
+      this.handleServiceInfoFromTerminal(data.sessionId, data.serviceInfo);
     });
     
     this.setupTerminalEventListeners();
@@ -251,6 +257,22 @@ export class DualSessionManager {
     this.outputChannel.appendLine(`✅ Response added to session: ${session.name}`);
   }
 
+  /**
+   * 🔧 Обработка служебной информации от Claude Code через JSONL мониторинг
+   */
+  private handleServiceInfoFromTerminal(sessionId: string, serviceInfo: ServiceMessage): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      this.outputChannel.appendLine(`⚠️ Received service info for unknown session: ${sessionId}`);
+      return;
+    }
+
+    this.outputChannel.appendLine(`🔧 New service info detected for ${session.name}: ${serviceInfo.toolUse.length} tools, status: ${serviceInfo.status}`);
+
+    // Fire event для служебной информации
+    this.fireEvent('serviceInfoReceived', sessionId, serviceInfo);
+  }
+
   // Getters
   getSession(sessionId: string): Session | null {
     return this.sessions.get(sessionId) || null;
@@ -462,6 +484,11 @@ export class DualSessionManager {
           this.onMessageReceivedCallback(args[0], args[1]);
         }
         break;
+      case 'serviceInfoReceived':
+        if (this.onServiceInfoReceivedCallback) {
+          this.onServiceInfoReceivedCallback(args[0], args[1]);
+        }
+        break;
     }
   }
 
@@ -484,6 +511,10 @@ export class DualSessionManager {
 
   onMessageReceived(callback: (sessionId: string, message: Message) => void): void {
     this.onMessageReceivedCallback = callback;
+  }
+
+  onServiceInfoReceived(callback: (sessionId: string, serviceInfo: ServiceMessage) => void): void {
+    this.onServiceInfoReceivedCallback = callback;
   }
 
   // Cleanup

@@ -4,13 +4,16 @@
  */
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Session, Message } from '../../types/Session';
+import { Session, Message, ServiceMessage } from '../../types/Session';
+import { ServiceInfoBlock } from './ServiceInfoBlock';
 import './ChatWindow.css';
 
 interface ChatWindowProps {
   session: Omit<Session, 'terminal'> | null;
   onSendMessage: (sessionId: string, message: string) => void;
   isLoading?: boolean;
+  activeServiceInfo?: ServiceMessage | null;
+  onServiceInfoUpdate?: (serviceInfo: ServiceMessage) => void;
 }
 
 interface MessageItemProps {
@@ -150,9 +153,16 @@ const SessionNotReady: React.FC<{ session: Omit<Session, 'terminal'> }> = ({ ses
 export const ChatWindow: React.FC<ChatWindowProps> = ({ 
   session, 
   onSendMessage, 
-  isLoading = false 
+  isLoading = false,
+  activeServiceInfo,
+  onServiceInfoUpdate
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Track activeServiceInfo changes for UI updates
+  useEffect(() => {
+    // ServiceInfo changes will trigger re-render
+  }, [activeServiceInfo, session?.messages]);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -206,8 +216,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         ) : (
           <div className="messages-list">
-            {session.messages.map(message => (
-              <MessageItem key={message.id} message={message} />
+            {session.messages.map((message, index) => (
+              <div key={message.id} className="message-group">
+                <MessageItem message={message} />
+                
+                {/* 🎨 Показываем ServiceInfoBlock только после последнего сообщения */}
+                {(() => {
+                  const isLastMessage = index === session.messages.length - 1;
+                  const shouldShow = isLastMessage && activeServiceInfo;
+                  return shouldShow ? (
+                    <ServiceInfoBlock 
+                      serviceInfo={activeServiceInfo}
+                      onUpdate={onServiceInfoUpdate}
+                      isCompact={false}
+                    />
+                  ) : null;
+                })()}
+              </div>
             ))}
             <div ref={messagesEndRef} />
           </div>

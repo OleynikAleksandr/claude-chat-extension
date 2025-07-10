@@ -1,0 +1,393 @@
+/**
+ * 🎨 ServiceInfoBlock Styles - Адаптивные стили для VS Code темы
+ * Поддерживает dark/light режимы и accessibility
+ */
+
+.service-info-block {
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 8px;
+  background: var(--vscode-editor-background);
+  margin: 8px 0;
+  font-family: var(--vscode-font-family);
+  font-size: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-info-block:hover {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* 🎨 Статусные цвета */
+.service-info-block.status-initializing {
+  border-left: 4px solid var(--vscode-terminal-ansiYellow);
+}
+
+.service-info-block.status-processing {
+  border-left: 4px solid var(--vscode-terminal-ansiBlue);
+}
+
+.service-info-block.status-completed {
+  border-left: 4px solid var(--vscode-terminal-ansiGreen);
+}
+
+.service-info-block.status-error {
+  border-left: 4px solid var(--vscode-terminal-ansiRed);
+}
+
+/* 🎨 Compact режим */
+.service-info-block.compact {
+  padding: 6px 12px;
+  cursor: pointer;
+  background: var(--vscode-badge-background);
+  border-radius: 16px;
+  display: inline-block;
+  margin: 4px 8px 4px 0;
+  border: 1px solid var(--vscode-badge-foreground);
+  transition: all 0.2s ease;
+}
+
+.service-info-block.compact:hover {
+  background: var(--vscode-button-hoverBackground);
+  transform: translateY(-1px);
+}
+
+.service-info-block.compact:focus {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+.compact-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--vscode-badge-foreground);
+}
+
+.tokens-compact {
+  color: var(--vscode-terminal-ansiBlue);
+  font-weight: 600;
+}
+
+.time-compact {
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+}
+
+.tools-compact {
+  color: var(--vscode-terminal-ansiGreen);
+  font-style: italic;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 🎨 Заголовок */
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  margin: 0;
+  border-bottom: 1px solid var(--vscode-panel-border);
+  background: var(--vscode-editor-background);
+}
+
+.service-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--vscode-foreground);
+}
+
+.service-icon {
+  font-size: 14px;
+}
+
+.service-text {
+  font-size: 13px;
+}
+
+.service-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.collapse-btn {
+  background: none;
+  border: none;
+  color: var(--vscode-descriptionForeground);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.collapse-btn:hover {
+  background: var(--vscode-button-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.collapse-btn:focus {
+  outline: 2px solid var(--vscode-focusBorder);
+  outline-offset: 2px;
+}
+
+/* 🎨 Статусные индикаторы */
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-indicator.status-initializing {
+  background: var(--vscode-terminal-ansiYellow);
+  color: var(--vscode-editor-background);
+}
+
+.status-indicator.status-processing {
+  background: var(--vscode-terminal-ansiBlue);
+  color: var(--vscode-editor-background);
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.status-completed {
+  background: var(--vscode-terminal-ansiGreen);
+  color: var(--vscode-editor-background);
+}
+
+.status-indicator.status-error {
+  background: var(--vscode-terminal-ansiRed);
+  color: var(--vscode-editor-background);
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* 🎨 Контент */
+.service-content {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.service-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 18px;
+}
+
+.line-icon {
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.line-label {
+  min-width: 70px;
+  color: var(--vscode-descriptionForeground);
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.line-value {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* 🎨 Специальные стили для разных типов контента */
+.token-value {
+  color: var(--vscode-terminal-ansiBlue);
+  font-weight: 600;
+  font-family: var(--vscode-editor-font-family);
+}
+
+.token-breakdown {
+  color: var(--vscode-descriptionForeground);
+  font-weight: 400;
+  font-size: 10px;
+}
+
+.updating-indicator {
+  color: var(--vscode-terminal-ansiBlue);
+  font-weight: bold;
+  animation: blink 1s infinite;
+  margin-left: 4px;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+.thinking-value {
+  color: var(--vscode-terminal-ansiMagenta);
+  font-style: italic;
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.tool-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.tool-item.active {
+  background: var(--vscode-terminal-ansiBlue);
+  color: var(--vscode-editor-background);
+}
+
+.tool-item.completed {
+  background: var(--vscode-terminal-ansiGreen);
+  color: var(--vscode-editor-background);
+}
+
+.tool-status.running {
+  color: var(--vscode-terminal-ansiYellow);
+  font-weight: bold;
+  animation: spin 2s linear infinite;
+}
+
+.tool-status.pending {
+  animation: bounce 1s infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+  40% { transform: translateY(-3px); }
+  60% { transform: translateY(-2px); }
+}
+
+.tool-duration {
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+  margin-left: 4px;
+}
+
+.final-duration {
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+}
+
+.cache-creation {
+  color: var(--vscode-terminal-ansiCyan);
+  font-size: 10px;
+}
+
+.service-tier {
+  color: var(--vscode-descriptionForeground);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+/* 🎨 Адаптивность */
+@media (max-width: 600px) {
+  .service-info-block {
+    font-size: 11px;
+  }
+  
+  .service-header {
+    padding: 8px;
+  }
+  
+  .service-content {
+    padding: 8px;
+    gap: 6px;
+  }
+  
+  .line-label {
+    min-width: 60px;
+    font-size: 10px;
+  }
+  
+  .line-value {
+    font-size: 10px;
+  }
+}
+
+/* 🎨 Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .service-info-block,
+  .service-info-block *,
+  .updating-indicator,
+  .tool-status.running,
+  .tool-status.pending,
+  .status-indicator.status-processing {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* 🎨 High contrast режим */
+@media (prefers-contrast: high) {
+  .service-info-block {
+    border-width: 2px;
+    border-color: var(--vscode-contrastBorder);
+  }
+  
+  .status-indicator {
+    border: 1px solid var(--vscode-contrastBorder);
+  }
+  
+  .tool-item {
+    border: 1px solid var(--vscode-contrastBorder);
+  }
+}
+
+/* 🎨 Focus management */
+.service-info-block:focus-within {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 2px var(--vscode-focusBorder);
+}
+
+/* 🎨 Тёмная тема специфичные стили */
+.vscode-dark .service-info-block {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+.vscode-dark .service-info-block:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+}
+
+/* 🎨 Светлая тема специфичные стили */
+.vscode-light .service-info-block {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.vscode-light .service-info-block:hover {
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}

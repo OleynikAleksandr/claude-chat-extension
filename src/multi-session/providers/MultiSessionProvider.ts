@@ -143,6 +143,16 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
         message
       });
     });
+
+    // 🔧 Обработка служебной информации от Claude Code
+    this.sessionManager.onServiceInfoReceived((sessionId, serviceInfo) => {
+      this.outputChannel.appendLine(`🔧 Service info received for session ${sessionId}: ${serviceInfo.toolUse.length} tools, status: ${serviceInfo.status}`);
+      this.sendMessage({
+        command: 'serviceInfoReceived',
+        sessionId,
+        serviceInfo
+      });
+    });
   }
 
   private async handleWebviewMessage(message: WebviewMessage): Promise<void> {

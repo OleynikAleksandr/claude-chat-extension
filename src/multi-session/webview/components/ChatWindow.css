@@ -48,6 +48,16 @@
 }
 
 /* Messages Container */
+
+/* 🎨 Message Group - для группировки сообщений с ServiceInfoBlock */
+.message-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-bottom: 4px;
+}
+
+/* Messages Container */
 .messages-container {
   flex-grow: 1;
   overflow-y: auto;

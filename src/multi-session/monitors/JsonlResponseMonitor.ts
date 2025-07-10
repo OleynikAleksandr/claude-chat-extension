@@ -8,20 +8,36 @@ import * as vscode from 'vscode';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { Message } from '../types/Session';
+import { Message, ServiceMessage, ServiceInfoDetected, ToolUseItem, UsageInfo } from '../types/Session';
 
-// Новый формат Claude Code JSONL
+// 🔧 Расширенный формат Claude Code JSONL для Enhanced ServiceInfo
 export interface ClaudeCodeJsonlEntry {
     type: 'user' | 'assistant';
     message?: {
+        id?: string;
         role: 'user' | 'assistant';
+        model?: string;
         content: Array<{
-            type: 'text';
-            text: string;
+            type: 'text' | 'tool_use' | 'thinking';
+            text?: string;
+            id?: string;
+            name?: string;
+            input?: any;
         }> | string;
+        stop_reason?: string | null;
+        stop_sequence?: string | null;
+        usage?: {
+            input_tokens: number;
+            output_tokens: number;
+            cache_creation_input_tokens?: number;
+            cache_read_input_tokens?: number;
+            service_tier?: string;
+        };
     };
     timestamp: string;
     sessionId?: string;
+    parentUuid?: string;
+    version?: string;
 }
 
 // Старый формат для совместимости
@@ -36,10 +52,23 @@ export interface ResponseDetected {
     response: Message;
 }
 
+// 🔧 Результат парсинга JSONL записи
+export interface ParsedJsonlEntry {
+    message?: JsonlEntry;
+    serviceInfo?: ServiceMessage;
+}
+
 export class JsonlResponseMonitor {
     private watchers: Map<string, fs.FSWatcher> = new Map();
     private lastProcessedEntries: Map<string, number> = new Map();
     private onResponseCallback?: (data: ResponseDetected) => void;
+    private onServiceInfoCallback?: (data: ServiceInfoDetected) => void;
+    
+    // 🔧 Оптимизация производительности
+    private fileContentCache: Map<string, { content: string; mtime: number }> = new Map();
+    private throttleTimers: Map<string, NodeJS.Timeout> = new Map();
+    private readonly THROTTLE_DELAY = 200; // 200ms между обработками
+    private readonly MAX_CACHE_SIZE = 10; // Максимальный размер кэша файлов
 
     constructor(private outputChannel: vscode.OutputChannel) {}
 
@@ -63,8 +92,8 @@ export class JsonlResponseMonitor {
         // Используем file watcher для отслеживания изменений САМОГО СВЕЖЕГО файла
         const watcher = fs.watch(jsonlPath, { persistent: false }, (eventType) => {
             if (eventType === 'change') {
-                this.outputChannel.appendLine(`📂 JSONL file changed (${eventType}), checking for new responses...`);
-                this.checkForNewResponses(sessionId, sessionName, jsonlPath);
+                this.outputChannel.appendLine(`📂 JSONL file changed (${eventType}), throttling check...`);
+                this.throttledCheckForNewResponses(sessionId, sessionName, jsonlPath);
             }
         });
 
@@ -95,6 +124,32 @@ export class JsonlResponseMonitor {
     }
 
     /**
+     * 🔧 Установить callback для получения служебной информации
+     */
+    onServiceInfo(callback: (data: ServiceInfoDetected) => void): void {
+        this.onServiceInfoCallback = callback;
+    }
+
+    /**
+     * 🔧 Throttled проверка новых ответов (производительность)
+     */
+    private throttledCheckForNewResponses(sessionId: string, sessionName: string, jsonlPath: string): void {
+        // Очищаем предыдущий таймер
+        const existingTimer = this.throttleTimers.get(sessionId);
+        if (existingTimer) {
+            clearTimeout(existingTimer);
+        }
+
+        // Устанавливаем новый таймер
+        const timer = setTimeout(() => {
+            this.checkForNewResponses(sessionId, sessionName, jsonlPath);
+            this.throttleTimers.delete(sessionId);
+        }, this.THROTTLE_DELAY);
+
+        this.throttleTimers.set(sessionId, timer);
+    }
+
+    /**
      * Проверить новые ответы в JSONL файле
      */
     private async checkForNewResponses(sessionId: string, sessionName: string, jsonlPath: string): Promise<void> {
@@ -103,11 +158,17 @@ export class JsonlResponseMonitor {
                 return;
             }
 
-            const content = await fs.promises.readFile(jsonlPath, 'utf-8');
+            // 🔧 Используем кэширование для оптимизации
+            const content = await this.getCachedFileContent(jsonlPath);
+            if (!content) {
+                return; // Файл не изменился
+            }
+
             const lines = content.trim().split('\n').filter(line => line.trim());
 
             const lastProcessed = this.lastProcessedEntries.get(sessionId) || 0;
-            const newEntries: JsonlEntry[] = [];
+            const newMessages: JsonlEntry[] = [];
+            const newServiceInfo: ServiceMessage[] = [];
 
             for (const line of lines) {
                 try {
@@ -115,14 +176,22 @@ export class JsonlResponseMonitor {
                     
                     // Пробуем новый формат Claude Code
                     if (this.isClaudeCodeFormat(rawEntry)) {
-                        const entry = this.parseClaudeCodeEntry(rawEntry as ClaudeCodeJsonlEntry);
-                        if (entry) {
-                            const entryTime = new Date(rawEntry.timestamp).getTime();
+                        const entryTime = new Date(rawEntry.timestamp).getTime();
+                        
+                        // Только новые записи после последней обработки
+                        if (entryTime > lastProcessed && rawEntry.type === 'assistant') {
+                            const parsed = this.parseClaudeCodeEntry(rawEntry as ClaudeCodeJsonlEntry, sessionId);
                             
-                            // Только новые записи после последней обработки
-                            if (entryTime > lastProcessed && entry.role === 'assistant') {
-                                newEntries.push(entry);
-                                this.outputChannel.appendLine(`✅ Parsed Claude Code format entry: ${entry.content.substring(0, 100)}...`);
+                            // Обрабатываем обычные сообщения
+                            if (parsed.message) {
+                                newMessages.push(parsed.message);
+                                this.outputChannel.appendLine(`✅ Parsed message: ${parsed.message.content.substring(0, 100)}...`);
+                            }
+                            
+                            // Обрабатываем служебную информацию
+                            if (parsed.serviceInfo) {
+                                newServiceInfo.push(parsed.serviceInfo);
+                                this.outputChannel.appendLine(`🔧 Parsed service info: ${parsed.serviceInfo.toolUse.length} tools, ${parsed.serviceInfo.usage.output_tokens} tokens`);
                             }
                         }
                     } 
@@ -133,7 +202,7 @@ export class JsonlResponseMonitor {
                         
                         // Только новые записи после последней обработки
                         if (entryTime > lastProcessed && entry.role === 'assistant') {
-                            newEntries.push(entry);
+                            newMessages.push(entry);
                             this.outputChannel.appendLine(`✅ Parsed legacy format entry: ${entry.content.substring(0, 100)}...`);
                         }
                     } else {
@@ -145,8 +214,8 @@ export class JsonlResponseMonitor {
                 }
             }
 
-            // Обрабатываем новые ответы от assistant
-            for (const entry of newEntries) {
+            // 🔧 Обрабатываем новые текстовые сообщения от assistant
+            for (const entry of newMessages) {
                 const responseMessage: Message = {
                     id: this.generateMessageId(),
                     content: entry.content,
@@ -165,8 +234,20 @@ export class JsonlResponseMonitor {
                 }
             }
 
+            // 🔧 Обрабатываем новую служебную информацию
+            for (const serviceInfo of newServiceInfo) {
+                this.outputChannel.appendLine(`🔧 New service info detected for ${sessionName}: ${serviceInfo.toolUse.length} tools, status: ${serviceInfo.status}`);
+
+                if (this.onServiceInfoCallback) {
+                    this.onServiceInfoCallback({
+                        sessionId,
+                        serviceInfo
+                    });
+                }
+            }
+
             // Обновляем последнее время обработки
-            if (newEntries.length > 0) {
+            if (newMessages.length > 0 || newServiceInfo.length > 0) {
                 this.lastProcessedEntries.set(sessionId, Date.now());
             }
 
@@ -234,37 +315,205 @@ export class JsonlResponseMonitor {
     }
 
     /**
-     * Парсинг записи нового формата Claude Code в старый формат
+     * 🔧 Парсинг записи нового формата Claude Code в два потока: message + serviceInfo
      */
-    private parseClaudeCodeEntry(entry: ClaudeCodeJsonlEntry): JsonlEntry | null {
+    private parseClaudeCodeEntry(entry: ClaudeCodeJsonlEntry, sessionId: string): ParsedJsonlEntry {
         if (!entry.message || entry.type !== 'assistant') {
-            return null;
+            return {};
         }
 
-        let content: string = '';
+        const result: ParsedJsonlEntry = {};
         
         // Обрабатываем content - может быть массивом объектов или строкой
         if (Array.isArray(entry.message.content)) {
-            // Новый формат: content - массив объектов
+            // 🔧 ПОТОК 1: Извлекаем текстовые сообщения
             const textContent = entry.message.content
-                .filter(item => item.type === 'text')
-                .map(item => item.text)
+                .filter(item => item.type === 'text' && item.text)
+                .map(item => item.text!)
                 .join('\n');
-            content = textContent;
+            
+            if (textContent.trim()) {
+                result.message = {
+                    role: 'assistant',
+                    content: textContent,
+                    timestamp: new Date(entry.timestamp).getTime()
+                };
+            }
+            
+            // 🔧 ПОТОК 2: Извлекаем служебную информацию
+            const serviceInfo = this.extractServiceInfo(entry, sessionId);
+            if (serviceInfo) {
+                result.serviceInfo = serviceInfo;
+            }
+            
         } else if (typeof entry.message.content === 'string') {
             // Старый формат: content - строка
-            content = entry.message.content;
+            result.message = {
+                role: 'assistant',
+                content: entry.message.content,
+                timestamp: new Date(entry.timestamp).getTime()
+            };
         }
 
-        if (!content) {
+        return result;
+    }
+
+    /**
+     * 🔧 Извлечение служебной информации из JSONL записи
+     */
+    private extractServiceInfo(entry: ClaudeCodeJsonlEntry, sessionId: string): ServiceMessage | null {
+        try {
+            if (!entry.message || !Array.isArray(entry.message.content)) {
+                return null;
+            }
+
+            // Извлекаем tool_use операции с валидацией
+            const toolUseItems: ToolUseItem[] = entry.message.content
+                .filter(item => item.type === 'tool_use')
+                .map(item => {
+                    // Валидируем обязательные поля
+                    if (!item.name) {
+                        this.outputChannel.appendLine(`⚠️ Tool use without name: ${JSON.stringify(item)}`);
+                        return null;
+                    }
+                    
+                    return {
+                        id: item.id || this.generateId(),
+                        name: item.name,
+                        input: this.sanitizeInput(item.input),
+                        status: 'running' as const,
+                        duration: undefined,
+                        result: undefined,
+                        error: undefined
+                    };
+                })
+                .filter(item => item !== null) as ToolUseItem[];
+
+            // Извлекаем thinking процесс с валидацией
+            const thinkingContent = entry.message.content
+                .filter(item => item.type === 'thinking' && item.text && typeof item.text === 'string')
+                .map(item => item.text!)
+                .join('\n')
+                .trim();
+
+            // Извлекаем usage информацию с валидацией
+            const usage: UsageInfo = {
+                input_tokens: this.validateTokenCount(entry.message.usage?.input_tokens),
+                output_tokens: this.validateTokenCount(entry.message.usage?.output_tokens),
+                cache_creation_input_tokens: this.validateTokenCount(entry.message.usage?.cache_creation_input_tokens),
+                cache_read_input_tokens: this.validateTokenCount(entry.message.usage?.cache_read_input_tokens),
+                service_tier: this.validateServiceTier(entry.message.usage?.service_tier)
+            };
+
+            // Создаем служебную информацию только если есть что показать
+            if (toolUseItems.length > 0 || thinkingContent || usage.output_tokens > 0) {
+                // Определяем статус на основе stop_reason
+                const status = this.determineStatusFromStopReason(entry);
+                
+                return {
+                    id: this.generateId(),
+                    type: 'service',
+                    sessionId: sessionId,
+                    timestamp: new Date(entry.timestamp),
+                    toolUse: toolUseItems,
+                    thinking: thinkingContent,
+                    usage: usage,
+                    status: status
+                };
+            }
+
+            return null;
+        } catch (error) {
+            this.outputChannel.appendLine(`❌ Error extracting service info: ${error}`);
             return null;
         }
+    }
 
-        return {
-            role: 'assistant',
-            content: content,
-            timestamp: new Date(entry.timestamp).getTime()
-        };
+    /**
+     * 🔧 Валидация и санитизация входных данных для tool_use
+     */
+    private sanitizeInput(input: any): any {
+        if (!input) {return {};}
+        
+        try {
+            // Проверяем на потенциально опасные данные
+            if (typeof input === 'string') {
+                return { raw: input.substring(0, 1000) }; // Ограничиваем длину
+            }
+            
+            if (typeof input === 'object') {
+                // Рекурсивно очищаем объект
+                const sanitized: any = {};
+                for (const [key, value] of Object.entries(input)) {
+                    if (typeof value === 'string') {
+                        sanitized[key] = value.substring(0, 1000);
+                    } else if (typeof value === 'number' || typeof value === 'boolean') {
+                        sanitized[key] = value;
+                    } else if (Array.isArray(value)) {
+                        sanitized[key] = value.slice(0, 100); // Ограничиваем массивы
+                    } else {
+                        sanitized[key] = String(value).substring(0, 500);
+                    }
+                }
+                return sanitized;
+            }
+            
+            return input;
+        } catch (error) {
+            this.outputChannel.appendLine(`⚠️ Error sanitizing input: ${error}`);
+            return { error: 'Failed to sanitize input' };
+        }
+    }
+
+    /**
+     * 🔧 Валидация количества токенов
+     */
+    private validateTokenCount(count: number | undefined): number {
+        if (count === undefined || count === null) {return 0;}
+        if (typeof count !== 'number') {return 0;}
+        if (count < 0) {return 0;}
+        if (count > 1000000) {return 1000000;} // Максимальное разумное значение
+        return Math.floor(count);
+    }
+
+    /**
+     * 🔧 Валидация service tier
+     */
+    private validateServiceTier(tier: string | undefined): string | undefined {
+        if (!tier || typeof tier !== 'string') {return undefined;}
+        
+        const validTiers = ['standard', 'premium', 'enterprise'];
+        if (validTiers.includes(tier.toLowerCase())) {
+            return tier.toLowerCase();
+        }
+        
+        return undefined;
+    }
+
+    /**
+     * 🔧 Определение статуса на основе stop_reason из JSONL
+     * stop_reason: null = готов принять новое сообщение = completed
+     * stop_reason: "tool_use" = обрабатывает инструменты = processing  
+     * По умолчанию = processing
+     */
+    private determineStatusFromStopReason(entry: ClaudeCodeJsonlEntry): 'processing' | 'completed' | 'initializing' {
+        const stopReason = entry.message?.stop_reason;
+        
+        // stop_reason: null означает что assistant завершил ответ и готов принять новое сообщение
+        if (stopReason === null) {
+            this.outputChannel.appendLine(`🔧 Status: COMPLETED (stop_reason: null)`);
+            return 'completed';
+        }
+        
+        // stop_reason: "tool_use" означает что assistant использует инструменты
+        if (stopReason === 'tool_use') {
+            this.outputChannel.appendLine(`🔧 Status: PROCESSING (stop_reason: tool_use)`);
+            return 'processing';
+        }
+        
+        // Все остальные случаи считаем processing
+        this.outputChannel.appendLine(`🔧 Status: PROCESSING (stop_reason: ${stopReason || 'undefined'})`);
+        return 'processing';
     }
 
     /**
@@ -275,9 +524,68 @@ export class JsonlResponseMonitor {
     }
 
     /**
+     * 🔧 Генерировать уникальный ID для служебных объектов
+     */
+    private generateId(): string {
+        return `id_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+    }
+
+    /**
+     * 🔧 Кэширование контента файла для оптимизации
+     */
+    private async getCachedFileContent(filePath: string): Promise<string | null> {
+        try {
+            const stats = await fs.promises.stat(filePath);
+            const mtime = stats.mtime.getTime();
+            
+            // Проверяем кэш
+            const cached = this.fileContentCache.get(filePath);
+            if (cached && cached.mtime === mtime) {
+                return null; // Файл не изменился
+            }
+            
+            // Читаем файл
+            const content = await fs.promises.readFile(filePath, 'utf-8');
+            
+            // Управляем размером кэша
+            if (this.fileContentCache.size >= this.MAX_CACHE_SIZE) {
+                // Удаляем самый старый элемент
+                const firstKey = this.fileContentCache.keys().next().value;
+                if (firstKey) {
+                    this.fileContentCache.delete(firstKey);
+                }
+            }
+            
+            // Кэшируем контент
+            this.fileContentCache.set(filePath, { content, mtime });
+            
+            return content;
+        } catch (error) {
+            this.outputChannel.appendLine(`⚠️ Error caching file content: ${error}`);
+            // Fallback: читаем файл напрямую
+            try {
+                return await fs.promises.readFile(filePath, 'utf-8');
+            } catch (fallbackError) {
+                this.outputChannel.appendLine(`❌ Fallback file read failed: ${fallbackError}`);
+                return null;
+            }
+        }
+    }
+
+    /**
      * Очистка ресурсов
      */
     dispose(): void {
+        // Очищаем таймеры
+        for (const [, timer] of this.throttleTimers) {
+            clearTimeout(timer);
+        }
+        this.throttleTimers.clear();
+        
+        // Очищаем кэш
+        this.fileContentCache.clear();
+        
+        // Останавливаем мониторинг
         for (const [sessionId] of this.watchers) {
             this.stopMonitoring(sessionId);
         }

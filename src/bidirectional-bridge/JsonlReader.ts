@@ -63,7 +63,7 @@ export class JsonlReader {
             const files = await fs.promises.readdir(projectDir);
             const jsonlFiles = files.filter(f => f.endsWith('.jsonl'));
             
-            if (jsonlFiles.length === 0) return null;
+            if (jsonlFiles.length === 0) {return null;}
             
             // Сортируем по времени модификации
             const filesWithStats = await Promise.all(
@@ -94,7 +94,7 @@ export class JsonlReader {
         // Читаем с конца
         for (let i = lines.length - 1; i >= 0 && entries.length < maxEntries; i--) {
             const line = lines[i].trim();
-            if (!line) continue;
+            if (!line) {continue;}
             
             try {
                 const data = JSON.parse(line);
@@ -169,7 +169,7 @@ export class JsonlReader {
      * Извлекает текст из сообщения
      */
     extractMessageText(entry: JsonlEntry): string {
-        if (!entry.message?.content) return '';
+        if (!entry.message?.content) {return '';}
         
         return entry.message.content
             .filter(c => c.type === 'text' && c.text)

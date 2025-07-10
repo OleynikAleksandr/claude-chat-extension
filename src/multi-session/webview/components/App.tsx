@@ -15,11 +15,13 @@ export const App: React.FC = () => {
     activeSessionId,
     isLoading,
     error,
+    activeServiceInfo,
     createSession,
     switchSession,
     closeSession,
     sendMessage,
-    refreshState
+    refreshState,
+    onServiceInfoUpdate
   } = useVSCodeAPI();
 
   const activeSession = sessions.find(session => session.id === activeSessionId) || null;
@@ -75,6 +77,8 @@ export const App: React.FC = () => {
         session={activeSession}
         onSendMessage={handleSendMessage}
         isLoading={isLoading}
+        activeServiceInfo={activeServiceInfo}
+        onServiceInfoUpdate={onServiceInfoUpdate}
       />
       
       {isLoading && (

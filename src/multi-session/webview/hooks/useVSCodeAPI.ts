@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Session, WebviewMessage, ExtensionMessage } from '../../types/Session';
+import { Session, WebviewMessage, ExtensionMessage, ServiceMessage } from '../../types/Session';
 
 // VS Code API declaration
 declare const vscode: {
@@ -17,6 +17,9 @@ export interface VSCodeAPIHook {
   isLoading: boolean;
   error: string | null;
   
+  // 🎨 Service Info State
+  activeServiceInfo: ServiceMessage | null;
+  
   // Actions
   createSession: (name?: string) => void;
   switchSession: (sessionId: string) => void;
@@ -24,6 +27,9 @@ export interface VSCodeAPIHook {
   sendMessage: (sessionId: string, message: string) => void;
   renameSession: (sessionId: string, newName: string) => void;
   refreshState: () => void;
+  
+  // 🎨 Service Info Actions
+  onServiceInfoUpdate: (serviceInfo: ServiceMessage) => void;
 }
 
 export function useVSCodeAPI(): VSCodeAPIHook {
@@ -31,6 +37,10 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // 🎨 Service Info State - Map-based solution for multi-session support
+  const [serviceInfoMap, setServiceInfoMap] = useState<Map<string, ServiceMessage>>(new Map());
+  const [activeServiceInfo, setActiveServiceInfo] = useState<ServiceMessage | null>(null);
 
   // Send message to VS Code extension
   const sendMessage = useCallback((message: WebviewMessage) => {
@@ -51,6 +61,21 @@ export function useVSCodeAPI(): VSCodeAPIHook {
         setSessions(message.sessions);
         setIsLoading(false);
         setError(null);
+        
+        // 🎨 Clean up serviceInfo for closed sessions
+        setServiceInfoMap(prev => {
+          const newMap = new Map(prev);
+          const currentSessionIds = new Set(message.sessions.map(s => s.id));
+          
+          // Remove serviceInfo for sessions that no longer exist
+          for (const [sessionId] of newMap) {
+            if (!currentSessionIds.has(sessionId)) {
+              newMap.delete(sessionId);
+            }
+          }
+          
+          return newMap;
+        });
         break;
 
       case 'activeSessionChanged':
@@ -61,6 +86,13 @@ export function useVSCodeAPI(): VSCodeAPIHook {
             ? { ...session, lastActiveAt: new Date() }
             : session
         ));
+        
+        // 🎨 Update activeServiceInfo from map when switching sessions
+        setServiceInfoMap(prev => {
+          const serviceInfo = prev.get(message.sessionId);
+          setActiveServiceInfo(serviceInfo || null);
+          return prev;
+        });
         break;
 
       case 'sessionStatusChanged':
@@ -89,6 +121,22 @@ export function useVSCodeAPI(): VSCodeAPIHook {
           ));
         } else if (!message.success && message.error) {
           setError(message.error);
+        }
+        break;
+
+      case 'serviceInfoReceived':
+        // 🎨 Handle service information updates - Map-based solution
+        if (message.serviceInfo && message.sessionId) {
+          // Store serviceInfo in map by sessionId
+          setServiceInfoMap(prev => {
+            const newMap = new Map(prev);
+            newMap.set(message.sessionId, message.serviceInfo);
+            return newMap;
+          });
+          
+          // Always update activeServiceInfo to show latest activity
+          // This ensures serviceInfo is visible even before activeSessionId is set
+          setActiveServiceInfo(message.serviceInfo);
         }
         break;
 
@@ -146,16 +194,23 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     sendMessage({ command: 'getSessionState' });
   }, [sendMessage]);
 
+  // 🎨 Service Info Update Handler
+  const onServiceInfoUpdate = useCallback((serviceInfo: ServiceMessage) => {
+    setActiveServiceInfo(serviceInfo);
+  }, []);
+
   return {
     sessions,
     activeSessionId,
     isLoading,
     error,
+    activeServiceInfo,
     createSession,
     switchSession,
     closeSession,
     sendMessage: sendChatMessage,
     renameSession,
-    refreshState
+    refreshState,
+    onServiceInfoUpdate
   };
 }
