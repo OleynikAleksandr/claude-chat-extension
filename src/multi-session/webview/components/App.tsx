@@ -46,6 +46,15 @@ export const App: React.FC = () => {
     }
   }, [canCreateNewSession, sessions.length, createSession]);
 
+  const handleCreatePtySession = useCallback(() => {
+    if (canCreateNewSession) {
+      const sessionNumber = sessions.length + 1;
+      // TODO: Implement PTY session creation
+      console.log('Creating PTY session...');
+      alert('PTY Session creation coming soon! This will use child_process with full CLI control.');
+    }
+  }, [canCreateNewSession, sessions.length]);
+
   const handleTabSwitch = useCallback((sessionId: string) => {
     switchSession(sessionId);
   }, [switchSession]);
@@ -119,6 +128,7 @@ export const App: React.FC = () => {
         activeSessionId={activeSessionId}
         onTabSwitch={handleTabSwitch}
         onNewSession={handleCreateSession}
+        onNewPtySession={handleCreatePtySession}
         onCloseSession={handleCloseSession}
         canCreateNewSession={canCreateNewSession}
         isLoading={isLoading}

@@ -143,6 +143,33 @@
   opacity: 0.6;
 }
 
+/* PTY Session Button */
+.new-pty-session-button {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border);
+  padding: 3px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.new-pty-session-button:hover:not(.disabled) {
+  background-color: var(--vscode-button-hoverBackground);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.new-pty-session-button.disabled {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-disabledForeground);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .session-count {
   font-size: 11px;
   font-weight: 500;

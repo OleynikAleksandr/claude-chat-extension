@@ -13,6 +13,7 @@ interface TabBarProps {
   activeSessionId: string | null;
   onTabSwitch: (sessionId: string) => void;
   onNewSession: () => void;
+  onNewPtySession: () => void;
   onCloseSession: (sessionId: string) => void;
   canCreateNewSession: boolean;
   isLoading?: boolean;
@@ -79,6 +80,7 @@ export const TabBar: React.FC<TabBarProps> = ({
   activeSessionId,
   onTabSwitch,
   onNewSession,
+  onNewPtySession,
   onCloseSession,
   canCreateNewSession,
   isLoading = false,
@@ -104,9 +106,18 @@ export const TabBar: React.FC<TabBarProps> = ({
             className={`new-session-button ${!canCreateNewSession ? 'disabled' : ''}`}
             onClick={onNewSession}
             disabled={!canCreateNewSession || isLoading}
-            title={canCreateNewSession ? 'Create new session' : 'Maximum sessions reached'}
+            title={canCreateNewSession ? 'Create new Terminal session' : 'Maximum sessions reached'}
           >
-            {isLoading ? '🔄' : '+ Session'}
+            {isLoading ? '🔄' : '🖥️ Terminal'}
+          </button>
+          
+          <button 
+            className={`new-pty-session-button ${!canCreateNewSession ? 'disabled' : ''}`}
+            onClick={onNewPtySession}
+            disabled={!canCreateNewSession || isLoading}
+            title={canCreateNewSession ? 'Create new PTY session (full CLI control)' : 'Maximum sessions reached'}
+          >
+            {isLoading ? '🔄' : '⚡ PTY'}
           </button>
           
           <div className="session-count">
