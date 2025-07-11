@@ -12,7 +12,7 @@ import { Message, ServiceMessage, ServiceInfoDetected, ToolUseItem, UsageInfo } 
 
 // 🔧 Расширенный формат Claude Code JSONL для Enhanced ServiceInfo
 export interface ClaudeCodeJsonlEntry {
-    type: 'user' | 'assistant';
+    type: 'user' | 'assistant' | 'summary';
     message?: {
         id?: string;
         role: 'user' | 'assistant';
@@ -45,6 +45,13 @@ export interface JsonlEntry {
     role: 'user' | 'assistant';
     content: string;
     timestamp?: number;
+}
+
+// 🔧 Формат summary записи при resume сессии
+export interface SummaryEntry {
+    type: 'summary';
+    summary: string;
+    leafUuid?: string;
 }
 
 export interface ResponseDetected {
@@ -173,6 +180,12 @@ export class JsonlResponseMonitor {
             for (const line of lines) {
                 try {
                     const rawEntry = JSON.parse(line);
+                    
+                    // Пропускаем summary записи (они появляются при resume сессии)
+                    if (this.isSummaryFormat(rawEntry)) {
+                        this.outputChannel.appendLine(`📝 Skipping summary entry: ${(rawEntry as SummaryEntry).summary}`);
+                        continue;
+                    }
                     
                     // Пробуем новый формат Claude Code
                     if (this.isClaudeCodeFormat(rawEntry)) {
@@ -315,6 +328,13 @@ export class JsonlResponseMonitor {
     }
 
     /**
+     * 🔧 Проверить, является ли запись summary форматом (при resume сессии)
+     */
+    private isSummaryFormat(entry: any): boolean {
+        return entry.type === 'summary' && entry.summary && typeof entry.summary === 'string';
+    }
+
+    /**
      * 🔧 Парсинг записи нового формата Claude Code в два потока: message + serviceInfo
      */
     private parseClaudeCodeEntry(entry: ClaudeCodeJsonlEntry, sessionId: string): ParsedJsonlEntry {
@@ -397,18 +417,24 @@ export class JsonlResponseMonitor {
                 .trim();
 
             // Извлекаем usage информацию с валидацией
+            // 🎯 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Контекстное окно = cache_creation + cache_read
+            const cacheCreationTokens = this.validateTokenCount(entry.message.usage?.cache_creation_input_tokens);
+            const cacheReadTokens = this.validateTokenCount(entry.message.usage?.cache_read_input_tokens);
+            const totalContextTokens = cacheCreationTokens + cacheReadTokens;
+
             const usage: UsageInfo = {
                 input_tokens: this.validateTokenCount(entry.message.usage?.input_tokens),
                 output_tokens: this.validateTokenCount(entry.message.usage?.output_tokens),
-                cache_creation_input_tokens: this.validateTokenCount(entry.message.usage?.cache_creation_input_tokens),
-                cache_read_input_tokens: this.validateTokenCount(entry.message.usage?.cache_read_input_tokens),
+                cache_creation_input_tokens: cacheCreationTokens,
+                cache_read_input_tokens: totalContextTokens, // Теперь это полный контекст!
                 service_tier: this.validateServiceTier(entry.message.usage?.service_tier)
             };
 
             // Создаем служебную информацию только если есть что показать
-            if (toolUseItems.length > 0 || thinkingContent || usage.output_tokens > 0) {
-                // Определяем статус на основе stop_reason
-                const status = this.determineStatusFromStopReason(entry);
+            // 🔧 ВАЖНО: Игнорируем записи с cache_read_input_tokens = 0 (промежуточные записи)
+            if ((toolUseItems.length > 0 || thinkingContent || usage.output_tokens > 0) && (usage.cache_read_input_tokens || 0) > 0) {
+                // Определяем статус на основе stop_reason И наличия активных инструментов
+                const status = this.determineStatusFromStopReasonAndTools(entry, toolUseItems);
                 
                 return {
                     id: this.generateId(),
@@ -490,29 +516,38 @@ export class JsonlResponseMonitor {
         return undefined;
     }
 
+
     /**
-     * 🔧 Определение статуса на основе stop_reason из JSONL
-     * stop_reason: null = готов принять новое сообщение = completed
-     * stop_reason: "tool_use" = обрабатывает инструменты = processing  
-     * По умолчанию = processing
+     * 🔧 Упрощённый алгоритм: ТОЛЬКО completed при ожидании пользователя
+     * По умолчанию ВСЕГДА processing, completed ТОЛЬКО при stop_reason: "end_turn"
      */
-    private determineStatusFromStopReason(entry: ClaudeCodeJsonlEntry): 'processing' | 'completed' | 'initializing' {
+    private determineStatusFromStopReasonAndTools(
+        entry: ClaudeCodeJsonlEntry, 
+        toolUseItems: ToolUseItem[]
+    ): 'processing' | 'completed' | 'initializing' {
         const stopReason = entry.message?.stop_reason;
         
-        // stop_reason: null означает что assistant завершил ответ и готов принять новое сообщение
-        if (stopReason === null) {
-            this.outputChannel.appendLine(`🔧 Status: COMPLETED (stop_reason: null)`);
+        // 🔍 ДЕТАЛЬНОЕ ЛОГИРОВАНИЕ для отладки
+        this.outputChannel.appendLine(`🔍 DEBUG: stop_reason value: "${stopReason}" (type: ${typeof stopReason})`);
+        this.outputChannel.appendLine(`🔍 DEBUG: tools count: ${toolUseItems.length}`);
+        this.outputChannel.appendLine(`🔍 DEBUG: stop_reason === "end_turn": ${stopReason === "end_turn"}`);
+        this.outputChannel.appendLine(`🔍 DEBUG: stop_reason === null: ${stopReason === null}`);
+        
+        // ГЛАВНОЕ ПРАВИЛО: completed ТОЛЬКО когда ассистент ждёт ответ от пользователя
+        // Проверяем разные варианты stop_reason для ожидания пользователя
+        const isWaitingForUser = (
+            stopReason === "end_turn" || 
+            stopReason === null || 
+            stopReason === "stop_sequence"
+        ) && toolUseItems.length === 0;
+        
+        if (isWaitingForUser) {
+            this.outputChannel.appendLine(`🔧 Status: COMPLETED (waiting for user, stop_reason: ${stopReason}, no tools)`);
             return 'completed';
         }
         
-        // stop_reason: "tool_use" означает что assistant использует инструменты
-        if (stopReason === 'tool_use') {
-            this.outputChannel.appendLine(`🔧 Status: PROCESSING (stop_reason: tool_use)`);
-            return 'processing';
-        }
-        
-        // Все остальные случаи считаем processing
-        this.outputChannel.appendLine(`🔧 Status: PROCESSING (stop_reason: ${stopReason || 'undefined'})`);
+        // ВО ВСЕХ ОСТАЛЬНЫХ СЛУЧАЯХ - processing
+        this.outputChannel.appendLine(`🔧 Status: PROCESSING (stop_reason: ${stopReason}, tools: ${toolUseItems.length})`);
         return 'processing';
     }
 
@@ -541,7 +576,7 @@ export class JsonlResponseMonitor {
             // Проверяем кэш
             const cached = this.fileContentCache.get(filePath);
             if (cached && cached.mtime === mtime) {
-                return null; // Файл не изменился
+                return cached.content; // Возвращаем кэшированное содержимое
             }
             
             // Читаем файл
@@ -569,6 +604,116 @@ export class JsonlResponseMonitor {
                 this.outputChannel.appendLine(`❌ Fallback file read failed: ${fallbackError}`);
                 return null;
             }
+        }
+    }
+
+    /**
+     * 🚀 Проактивное чтение текущего состояния JSONL для инициализации токенов
+     * Вызывается при первом сообщении пользователя в сессии
+     */
+    async initializeSessionTokens(sessionId: string, sessionName: string): Promise<void> {
+        try {
+            // Поиск JSONL файла (скопировано из метода findJsonlPath)
+            const claudeDir = path.join(os.homedir(), '.claude');
+            if (!fs.existsSync(claudeDir)) {
+                this.outputChannel.appendLine(`🔍 Claude directory not found - tokens will be initialized after first response`);
+                return;
+            }
+
+            const allFiles: Array<{ name: string; path: string; mtime: Date }> = [];
+            
+            const searchDir = (dir: string) => {
+                const items = fs.readdirSync(dir);
+                for (const item of items) {
+                    const fullPath = path.join(dir, item);
+                    const stat = fs.statSync(fullPath);
+                    
+                    if (stat.isDirectory()) {
+                        searchDir(fullPath); // Рекурсивно ищем в подпапках
+                    } else if (item.endsWith('.jsonl')) {
+                        allFiles.push({
+                            name: item,
+                            path: fullPath,
+                            mtime: stat.mtime
+                        });
+                    }
+                }
+            };
+
+            searchDir(claudeDir);
+            
+            // Сортируем по времени модификации (самый новый первый)
+            allFiles.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+            
+            let jsonlPath: string | null = null;
+            if (allFiles.length > 0) {
+                jsonlPath = allFiles[0].path;
+            }
+
+            if (!jsonlPath || !fs.existsSync(jsonlPath)) {
+                this.outputChannel.appendLine(`🔍 No JSONL file found for session ${sessionId} (${sessionName}) - tokens will be initialized after first response`);
+                return;
+            }
+
+            this.outputChannel.appendLine(`🚀 Proactively reading JSONL for session ${sessionId}: ${jsonlPath}`);
+
+            const content = await this.getCachedFileContent(jsonlPath);
+            if (!content) {
+                return;
+            }
+
+            const lines = content.trim().split('\n').filter(line => line.trim());
+            if (lines.length === 0) {
+                return;
+            }
+
+            // Ищем последнюю запись assistant с токенами
+            let latestServiceInfo: ServiceMessage | null = null;
+            
+            for (let i = lines.length - 1; i >= 0; i--) {
+                try {
+                    const rawEntry = JSON.parse(lines[i]);
+                    
+                    // Пропускаем summary записи при инициализации
+                    if (this.isSummaryFormat(rawEntry)) {
+                        continue;
+                    }
+                    
+                    if (this.isClaudeCodeFormat(rawEntry) && rawEntry.type === 'assistant') {
+                        const parsed = this.parseClaudeCodeEntry(rawEntry as ClaudeCodeJsonlEntry, sessionId);
+                        
+                        if (parsed.serviceInfo) {
+                            latestServiceInfo = parsed.serviceInfo;
+                            break; // Нашли последнюю запись с токенами
+                        }
+                    }
+                } catch (parseError) {
+                    continue; // Пропускаем некорректные строки
+                }
+            }
+
+            // Если нашли служебную информацию - отправляем её с принудительным статусом processing
+            if (latestServiceInfo) {
+                this.outputChannel.appendLine(`✅ Initialized tokens for session ${sessionId}: ${latestServiceInfo.usage.cache_read_input_tokens || 0} cache tokens`);
+                
+                // 🔧 ВАЖНО: При инициализации ВСЕГДА устанавливаем processing, 
+                // так как пользователь только что отправил сообщение
+                const processingServiceInfo: ServiceMessage = {
+                    ...latestServiceInfo,
+                    status: 'processing',
+                    timestamp: new Date() // Обновляем время
+                };
+                
+                if (this.onServiceInfoCallback) {
+                    this.onServiceInfoCallback({
+                        sessionId,
+                        serviceInfo: processingServiceInfo
+                    });
+                }
+            }
+
+        } catch (error) {
+            this.outputChannel.appendLine(`❌ Error initializing session tokens: ${error}`);
         }
     }
 

@@ -5,6 +5,130 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.22] - 2025-07-10
+
+### 🎨 Header Design Improvements: Proper Font Sizes Based on Figma Mockup
+
+### Fixed
+- ✅ **Tab Font Sizes**: Increased from 6px to 11px for better readability
+- ✅ **Button Sizes**: Increased from 6px to 11px for proper proportion
+- ✅ **Status Indicators**: Increased from 5px to 9px for visibility
+- ✅ **Close Button**: Increased from 7px to 10px for usability
+- ✅ **Session Count**: Increased from 5px to 9px for readability
+- ✅ **Context Window Text**: Increased from 10px to 11px for consistency
+- ✅ **Message Counter**: Increased from 9px to 10px for balance
+
+### Technical Changes
+- Updated TabBar.css with proper font sizing
+- Updated ContextProgressBar.css with balanced proportions
+- All header elements now have readable, professional appearance
+
+### UX Improvements
+- Header now matches Figma mockup proportions
+- Balanced visual hierarchy across all UI elements
+- Professional, clean interface appearance
+- Improved accessibility through proper font sizing
+
+## [0.10.21] - 2025-07-10
+
+### 🔧 Critical Design Fixes: Restored UI Balance and Readability
+
+### Fixed
+- ✅ **Font Size Balance**: Restored readable font sizes after v0.10.20 over-compression
+  - Message content: 6px → 10px (balanced from original 13px)
+  - Message headers: 5px → 11px (restored to standard)
+  - Message types: 6px → 12px (restored to standard)
+- ✅ **Processing Status Redesign**: Simplified and professional
+  - Removed all emoji icons (⏳ ❚ ✅) replaced with clean text
+  - Tool name font size: 11px (clear and readable)
+  - Status text: 10px with proper color coding
+  - Processing: animated blinking blue text
+  - Completed: solid green text
+- ✅ **Message Bubble Readability**: Fixed transparency issues
+  - Background opacity: 0.33 → 0.6 (more visible but still subtle)
+  - Text remains fully opaque and readable
+- ✅ **Compact Status Bar**: Reduced oversized processing footer
+  - Height: 24px → 16px (more proportional)
+  - Padding: 4px → 2px (tighter spacing)
+  - Status badge replaced with simple colored text
+
+### Design Philosophy
+- 🎯 **Balanced Approach**: Not too compact, not too large
+- 🎯 **Readability First**: All text must be clearly readable
+- 🎯 **Clean & Simple**: No unnecessary icons or decorations
+- 🎯 **Professional Look**: Subtle backgrounds with clear text
+
+### Technical Details
+- 🔧 **Typography**: Carefully balanced font sizes across all components
+- 🔧 **Animation**: Simple text-based blinking for processing status
+- 🔧 **Accessibility**: Maintained screen reader compatibility
+- 🔧 **Performance**: Removed complex icon animations
+
+## [0.10.20] - 2025-07-10
+
+### 🎨 Major UI/UX Enhancement: Compact Design Overhaul
+
+### Added
+- ✨ **Redesigned Processing Status**: New compact single-line format anchored to bottom footer
+- ✨ **Animated Hourglass**: Visual processing feedback with ⏳ animation during tool execution
+- ✨ **Smart Information Layout**: Message count integrated with context progress bar
+- ✨ **Unified Color Scheme**: Headers and footer now use consistent input background color
+- ✨ **Compact Message Display**: Refined bubbles with subtle transparency for professional look
+
+### Changed
+- 🎨 **50% Smaller Headers**: All header fonts reduced by half for better space efficiency
+- 🎨 **Compact Tabs**: Streamlined tab design with reduced padding and heights
+- 🎨 **Minimal Processing Status**: Single line with tool name and status badge only
+- 🎨 **Subtle Message Bubbles**: Background opacity reduced to 33% for refined appearance
+- 🎨 **Information Reorganization**: Removed redundant displays and logical grouping
+
+### Removed
+- ❌ **Processing Time Display**: Removed from service status for cleaner look
+- ❌ **Large Status Graphics**: Replaced with compact badges and icons
+- ❌ **Redundant Status Lines**: Removed "Claude Chat 1 Ready" duplicate information
+- ❌ **Header Message Count**: Moved to context bar integration
+- ❌ **Oversized Elements**: Reduced all component sizes for efficiency
+
+### Design Philosophy
+- 🎯 **Compact & Efficient**: 40% more visible content in same space
+- 🎯 **Information Dense**: More data with less visual noise
+- 🎯 **Professional Refined**: Subtle, sophisticated appearance
+- 🎯 **Functional First**: All features preserved and enhanced
+
+### Technical Details
+- 🔧 **7 Components Modified**: Complete UI overhaul across all interface elements
+- 🔧 **CSS Optimization**: New compact styling system with consistent spacing
+- 🔧 **Animation Enhancement**: Smooth hourglass rotation and status transitions
+- 🔧 **Color Unification**: Standardized background using `var(--vscode-input-background)`
+- 🔧 **Layout Restructuring**: Processing status repositioned to footer area
+
+### Performance
+- ⚡ **Space Efficiency**: 40% more messages visible per screen
+- ⚡ **Reduced Visual Load**: Subtle colors decrease eye strain
+- ⚡ **Better Focus**: Less distraction from actual conversation content
+- ⚡ **Responsive Design**: All changes maintain VS Code theme compatibility
+
+## [0.10.19] - 2025-07-10
+
+### 🎯 Critical Bug Fix: Correct Context Window Calculation
+
+### Fixed
+- ✅ **CRITICAL**: Fixed incorrect context window calculation in old sessions
+- ✅ **Context Tokens**: Now correctly calculates as `cache_creation_input_tokens + cache_read_input_tokens`
+- ✅ **Session Resume**: Fixed token display issues when using `claude resume` command
+- ✅ **Immediate Display**: Context indicator now shows correct values from the first message
+- ✅ **Summary Format Support**: Added support for new Claude Code summary format in JSONL files
+- ✅ **UI Cleanup**: Removed unnecessary "tokens" line from service info block
+
+### Technical Details
+- 🔧 **Root Cause**: Previously only used `cache_read_input_tokens`, ignoring `cache_creation_input_tokens`
+- 🔧 **Solution**: Parser now sums both token fields to calculate total context window
+- 🔧 **Impact**: Resolves the long-standing issue where resumed sessions showed incorrect token counts (e.g., 10k instead of 107k)
+
+### Versions
+- **v0.10.16-0.10.18**: Progressive fixes and investigations
+- **v0.10.19**: Complete resolution with correct context calculation
+
 ## [0.9.1] - 2025-07-09
 
 ### 🚀 Major Feature: Enhanced Service Information Monitoring

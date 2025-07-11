@@ -7,6 +7,7 @@
 import * as vscode from 'vscode';
 import { Session, Message, ServiceMessage } from '../types/Session';
 import { JsonlResponseMonitor } from '../monitors/JsonlResponseMonitor';
+import { InteractiveCommandManager, UserResponse } from '../../interactive-commands';
 
 export class DualSessionManager {
   private sessions: Map<string, Session> = new Map();
@@ -15,6 +16,7 @@ export class DualSessionManager {
   private readonly messageHistoryLimit = 100;
   private jsonlMonitor: JsonlResponseMonitor;
   private sessionMonitoringStatus: Map<string, boolean> = new Map(); // Отслеживание статуса мониторинга
+  private interactiveCommandManager: InteractiveCommandManager;
   
   // Event callbacks
   private onSessionCreatedCallback?: (session: Session) => void;
@@ -23,6 +25,7 @@ export class DualSessionManager {
   private onSessionStatusChangedCallback?: (sessionId: string, status: Session['status']) => void;
   private onMessageReceivedCallback?: (sessionId: string, message: Message) => void;
   private onServiceInfoReceivedCallback?: (sessionId: string, serviceInfo: ServiceMessage) => void;
+  private onInteractiveInputRequiredCallback?: (sessionId: string, command: string, data: any, prompt: string) => void;
 
   constructor(private outputChannel: vscode.OutputChannel) {
     // **ПОТОК 2: Terminal → Extension**
@@ -36,6 +39,16 @@ export class DualSessionManager {
       this.handleServiceInfoFromTerminal(data.sessionId, data.serviceInfo);
     });
     
+    // Инициализация менеджера интерактивных команд
+    this.interactiveCommandManager = new InteractiveCommandManager(outputChannel);
+    
+    // Подписка на события интерактивных команд
+    this.interactiveCommandManager.onInputRequired((event) => {
+      if (this.onInteractiveInputRequiredCallback) {
+        this.onInteractiveInputRequiredCallback(event.sessionId, event.command, event.data, event.prompt);
+      }
+    });
+    
     this.setupTerminalEventListeners();
   }
 
@@ -46,7 +59,7 @@ export class DualSessionManager {
     }
 
     const sessionId = this.generateSessionId();
-    const sessionName = name || `Claude Chat ${this.sessions.size + 1}`;
+    const sessionName = name || `Session ${this.sessions.size + 1}`;
     
     this.outputChannel.appendLine(`Creating session: ${sessionName} (${sessionId})`);
 
@@ -101,6 +114,9 @@ export class DualSessionManager {
     // **Останавливаем JSONL мониторинг для закрываемой сессии**
     this.jsonlMonitor.stopMonitoring(sessionId);
     this.sessionMonitoringStatus.delete(sessionId);
+    
+    // Останавливаем мониторинг интерактивных команд
+    this.interactiveCommandManager.stopCommandTracking(sessionId, session.terminal);
 
     // Close terminal
     session.terminal.dispose();
@@ -179,6 +195,14 @@ export class DualSessionManager {
     session.messages.push(messageObj);
     this.trimMessageHistory(session);
 
+    // 🚀 Proactive token initialization on EVERY user message
+    this.outputChannel.appendLine(`🚀 User message in session ${sessionId} - updating tokens`);
+    try {
+      await this.jsonlMonitor.initializeSessionTokens(sessionId, session.name);
+    } catch (error) {
+      this.outputChannel.appendLine(`❌ Error updating session tokens: ${error}`);
+    }
+
     // Fire event for user message
     this.fireEvent('messageReceived', sessionId, messageObj);
 
@@ -229,6 +253,63 @@ export class DualSessionManager {
     session.lastActiveAt = new Date();
 
     this.outputChannel.appendLine(`✅ Message sent to terminal: ${session.name}`);
+  }
+
+  async executeSlashCommand(sessionId: string, slashCommand: string): Promise<void> {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      throw new Error(`Session ${sessionId} not found`);
+    }
+
+    if (session.status !== 'ready') {
+      throw new Error(`Session ${sessionId} is not ready (status: ${session.status})`);
+    }
+
+    this.outputChannel.appendLine(`⚡ Executing slash command in session ${sessionId}: ${slashCommand}`);
+
+    // Проверяем, является ли команда интерактивной
+    if (this.interactiveCommandManager.isInteractiveCommand(slashCommand)) {
+      this.outputChannel.appendLine(`🔄 Interactive command detected: ${slashCommand} - setting up response monitoring`);
+      // Начинаем отслеживание интерактивной команды
+      this.interactiveCommandManager.startCommandTracking(sessionId, slashCommand, session.terminal);
+    }
+
+    // **Прямое выполнение слэш-команды в терминале с принудительным Enter**
+    // Отправляем команду без автоматического Enter
+    session.terminal.sendText(slashCommand, false);
+    
+    // **Принудительная отправка Enter для выполнения команды**
+    this.outputChannel.appendLine(`⏎ Sending Enter to execute command`);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    session.terminal.sendText('\r', false);
+    
+    // Update last active time
+    session.lastActiveAt = new Date();
+
+    this.outputChannel.appendLine(`✅ Slash command executed in terminal: ${session.name}`);
+  }
+
+  /**
+   * Обработка ответа пользователя на интерактивную команду
+   */
+  async handleInteractiveResponse(response: UserResponse): Promise<void> {
+    const session = this.sessions.get(response.sessionId);
+    if (!session) {
+      throw new Error(`Session ${response.sessionId} not found`);
+    }
+
+    this.outputChannel.appendLine(`📝 Handling interactive response for session ${response.sessionId}: ${response.selection}`);
+
+    // Получаем отформатированный ответ для терминала
+    const terminalResponse = this.interactiveCommandManager.handleUserResponse(response);
+    
+    if (terminalResponse) {
+      // Отправляем ответ в терминал
+      session.terminal.sendText(terminalResponse, true); // true для автоматического Enter
+      this.outputChannel.appendLine(`✅ Sent response to terminal: ${terminalResponse}`);
+    } else {
+      this.outputChannel.appendLine(`❌ Failed to handle interactive response`);
+    }
   }
 
   /**
@@ -517,6 +598,10 @@ export class DualSessionManager {
     this.onServiceInfoReceivedCallback = callback;
   }
 
+  onInteractiveInputRequired(callback: (sessionId: string, command: string, data: any, prompt: string) => void): void {
+    this.onInteractiveInputRequiredCallback = callback;
+  }
+
   // Cleanup
   dispose(): void {
     // Close all sessions
@@ -525,5 +610,8 @@ export class DualSessionManager {
     }
     
     this.sessions.clear();
+    
+    // Dispose interactive command manager
+    this.interactiveCommandManager.dispose();
   }
 }

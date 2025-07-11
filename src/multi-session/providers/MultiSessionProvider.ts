@@ -153,6 +153,18 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
         serviceInfo
       });
     });
+
+    // Обработка интерактивных команд
+    this.sessionManager.onInteractiveInputRequired((sessionId, command, data, prompt) => {
+      this.outputChannel.appendLine(`📝 Interactive input required for session ${sessionId}: ${command}`);
+      this.sendMessage({
+        command: 'interactiveInputRequired',
+        sessionId,
+        interactiveCommand: command,
+        data,
+        prompt
+      });
+    });
   }
 
   private async handleWebviewMessage(message: WebviewMessage): Promise<void> {
@@ -237,6 +249,41 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
               sessionId: message.sessionId,
               success: false,
               error: `Failed to send message: ${error}`
+            });
+          }
+          break;
+
+        case 'executeSlashCommand':
+          try {
+            this.outputChannel.appendLine(`⚡ Executing slash command in session ${message.sessionId}: "${message.slashCommand}"`);
+            await this.sessionManager.executeSlashCommand(message.sessionId, message.slashCommand);
+            this.outputChannel.appendLine(`✅ Slash command executed successfully in session: ${message.sessionId}`);
+          } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to execute slash command: ${error}`);
+            this.sendMessage({
+              command: 'error',
+              message: `Failed to execute slash command: ${error}`,
+              sessionId: message.sessionId
+            });
+          }
+          break;
+
+        case 'interactiveResponse':
+          try {
+            this.outputChannel.appendLine(`📝 Handling interactive response for session ${message.sessionId}: ${message.selection}`);
+            await this.sessionManager.handleInteractiveResponse({
+              sessionId: message.sessionId,
+              command: message.interactiveCommand,
+              selection: message.selection,
+              metadata: message.metadata
+            });
+            this.outputChannel.appendLine(`✅ Interactive response handled successfully`);
+          } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to handle interactive response: ${error}`);
+            this.sendMessage({
+              command: 'error',
+              message: `Failed to handle interactive response: ${error}`,
+              sessionId: message.sessionId
             });
           }
           break;

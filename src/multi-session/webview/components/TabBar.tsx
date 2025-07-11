@@ -5,6 +5,7 @@
 
 import React from 'react';
 import { Session, SessionStatus } from '../../types/Session';
+import { ContextProgressBar } from './ContextProgressBar';
 import './TabBar.css';
 
 interface TabBarProps {
@@ -15,6 +16,7 @@ interface TabBarProps {
   onCloseSession: (sessionId: string) => void;
   canCreateNewSession: boolean;
   isLoading?: boolean;
+  cacheReadTokens?: number;
 }
 
 interface SessionTabProps {
@@ -58,7 +60,6 @@ const SessionTab: React.FC<SessionTabProps> = ({ session, isActive, onSelect, on
       onClick={onSelect}
       title={`${session.name} - ${session.status}`}
     >
-      <StatusIndicator status={session.status} />
       <span className="tab-name">{session.name}</span>
       {session.status !== 'creating' && (
         <button 
@@ -80,36 +81,51 @@ export const TabBar: React.FC<TabBarProps> = ({
   onNewSession,
   onCloseSession,
   canCreateNewSession,
-  isLoading = false
+  isLoading = false,
+  cacheReadTokens = 0
 }) => {
   return (
-    <div className="tab-bar">
-      <div className="tabs-container">
-        {sessions.map(session => (
-          <SessionTab
-            key={session.id}
-            session={session}
-            isActive={session.id === activeSessionId}
-            onSelect={() => onTabSwitch(session.id)}
-            onClose={() => onCloseSession(session.id)}
-          />
-        ))}
-      </div>
-      
-      <div className="tab-actions">
-        <button 
-          className={`new-session-button ${!canCreateNewSession ? 'disabled' : ''}`}
-          onClick={onNewSession}
-          disabled={!canCreateNewSession || isLoading}
-          title={canCreateNewSession ? 'Create new session' : 'Maximum sessions reached'}
-        >
-          {isLoading ? '🔄' : '+ New Session'}
-        </button>
+    <div className="tab-bar-container">
+      <div className="tab-bar">
+        <div className="tabs-container">
+          {sessions.map(session => (
+            <SessionTab
+              key={session.id}
+              session={session}
+              isActive={session.id === activeSessionId}
+              onSelect={() => onTabSwitch(session.id)}
+              onClose={() => onCloseSession(session.id)}
+            />
+          ))}
+        </div>
         
-        <div className="session-count">
-          {sessions.length}/2
+        <div className="tab-actions">
+          <button 
+            className={`new-session-button ${!canCreateNewSession ? 'disabled' : ''}`}
+            onClick={onNewSession}
+            disabled={!canCreateNewSession || isLoading}
+            title={canCreateNewSession ? 'Create new session' : 'Maximum sessions reached'}
+          >
+            {isLoading ? '🔄' : '+ Session'}
+          </button>
+          
+          <div className="session-count">
+            {sessions.length}/2
+          </div>
         </div>
       </div>
+      
+      {/* Context Progress Bar - показывать для активной сессии */}
+      {activeSessionId && (() => {
+        const activeSession = sessions.find(session => session.id === activeSessionId);
+        return (
+          <ContextProgressBar 
+            cacheReadTokens={cacheReadTokens}
+            className="tab-context-indicator"
+            messageCount={activeSession?.messages.length || 0}
+          />
+        );
+      })()}
     </div>
   );
 };

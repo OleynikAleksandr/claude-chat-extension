@@ -1,6 +1,6 @@
 # ClaudeCodeBridge 🌉
 
-[![Version](https://img.shields.io/badge/version-0.10.2-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.10.2)
+[![Version](https://img.shields.io/badge/version-0.10.19-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.10.19)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-brightgreen.svg)](https://code.visualstudio.com/)
 [![GitHub Release](https://img.shields.io/github/v/release/OleynikAleksandr/claude-chat-extension)](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
@@ -9,9 +9,14 @@
 
 ClaudeCodeBridge enables seamless integration between VS Code and Anthropic's Claude Code CLI, providing a native chat interface with full bidirectional communication capabilities.
 
-## 🎉 Version 0.10.2 - Smart Service Status Detection
+## 🎉 Version 0.10.19 - Critical Context Window Fix
 
-Latest release with intelligent ServiceInfoBlock status detection based on Claude Code JSONL analysis.
+Latest release with **fully corrected context window calculation** for resumed sessions and complete Claude Code format compatibility.
+
+### 🎯 Critical Fix
+- **Context Window**: Now correctly calculates as `cache_creation + cache_read` tokens
+- **Session Resume**: Perfect compatibility with `claude resume` command
+- **Immediate Display**: Shows accurate token counts from the first message
 
 ### ✨ Key Features
 
@@ -20,7 +25,8 @@ Latest release with intelligent ServiceInfoBlock status detection based on Claud
 - **📩 Flow 2 (Terminal → Extension)**: Receive Claude responses back to webview in real-time
 - **🖥️ Multi-Session Support**: Manage multiple Claude Code sessions simultaneously with Map-based architecture
 - **⚡ Real-Time Response Monitoring**: Automatic detection and parsing of Claude Code responses
-- **🎯 Smart Status Detection**: Precise ServiceInfoBlock status based on stop_reason analysis
+- **🎯 Accurate Status Detection**: Reliable ServiceInfoBlock status considering both stop_reason and active tools
+- **📊 Context Progress Bar**: Visual gradient indicator showing context usage with 160k token limit and 80% warning mark
 - **📊 Live Service Information**: Real-time tool usage, token counts, and processing status
 - **📁 Enhanced JSONL Monitoring**: Advanced file system watchers with intelligent caching
 - **🚀 Optimized Performance**: Dynamic positioning and memory-efficient processing

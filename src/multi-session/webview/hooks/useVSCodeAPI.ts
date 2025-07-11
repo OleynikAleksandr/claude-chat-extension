@@ -25,11 +25,15 @@ export interface VSCodeAPIHook {
   switchSession: (sessionId: string) => void;
   closeSession: (sessionId: string) => void;
   sendMessage: (sessionId: string, message: string) => void;
+  executeSlashCommand: (sessionId: string, slashCommand: string) => void;
   renameSession: (sessionId: string, newName: string) => void;
   refreshState: () => void;
   
   // 🎨 Service Info Actions
   onServiceInfoUpdate: (serviceInfo: ServiceMessage) => void;
+  
+  // Interactive command support
+  sendInteractiveResponse: (sessionId: string, command: string, selection: string | number, metadata?: any) => void;
 }
 
 export function useVSCodeAPI(): VSCodeAPIHook {
@@ -41,6 +45,9 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   // 🎨 Service Info State - Map-based solution for multi-session support
   const [serviceInfoMap, setServiceInfoMap] = useState<Map<string, ServiceMessage>>(new Map());
   const [activeServiceInfo, setActiveServiceInfo] = useState<ServiceMessage | null>(null);
+  
+  // 🧪 Smart token filtering - prevent UI jumps by ignoring decreasing values
+  const [lastValidTokens, setLastValidTokens] = useState<number>(0);
 
   // Send message to VS Code extension
   const sendMessage = useCallback((message: WebviewMessage) => {
@@ -55,6 +62,12 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   // Handle messages from VS Code extension
   const handleExtensionMessage = useCallback((message: ExtensionMessage) => {
     console.log('Received message from extension:', message);
+
+    // 🛡️ Guard against invalid messages without command
+    if (!message || typeof message !== 'object' || !message.command) {
+      console.warn('🛡️ Filtered invalid message without command:', message);
+      return;
+    }
 
     switch (message.command) {
       case 'sessionsUpdated':
@@ -134,9 +147,33 @@ export function useVSCodeAPI(): VSCodeAPIHook {
             return newMap;
           });
           
-          // Always update activeServiceInfo to show latest activity
-          // This ensures serviceInfo is visible even before activeSessionId is set
-          setActiveServiceInfo(message.serviceInfo);
+          // 🎨 Update activeServiceInfo with smart session handling
+          // Always update if no active session, or if it matches active session
+          if (!activeSessionId || message.sessionId === activeSessionId) {
+            const newTokens = message.serviceInfo.usage.cache_read_input_tokens || 0;
+            
+            // 🧪 Smart filtering: ignore decreasing token values (prevents UI jumps)
+            // BUT always update status changes regardless of token count
+            if (newTokens >= lastValidTokens || lastValidTokens === 0 || 
+                !activeServiceInfo || activeServiceInfo.status !== message.serviceInfo.status) {
+              console.log(`🎨 Updating serviceInfo: status=${message.serviceInfo.status}, tokens=${newTokens}`);
+              setActiveServiceInfo(message.serviceInfo);
+              setLastValidTokens(newTokens);
+            } else {
+              console.log(`🧪 Filtered decreasing tokens: ${newTokens} < ${lastValidTokens}`);
+            }
+          }
+        }
+        break;
+
+      case 'interactiveInputRequired':
+        // Handle interactive command input requirement
+        if (message.sessionId && message.interactiveCommand && message.data) {
+          console.log(`📝 Interactive input required for ${message.interactiveCommand}`, message);
+          // This will be handled by the App component
+          if ((window as any).onInteractiveInputRequired) {
+            (window as any).onInteractiveInputRequired(message);
+          }
         }
         break;
 
@@ -149,7 +186,7 @@ export function useVSCodeAPI(): VSCodeAPIHook {
       default:
         console.warn('Unknown message command:', message);
     }
-  }, []);
+  }, [activeSessionId, lastValidTokens]);
 
   // Set up message listener
   useEffect(() => {
@@ -186,6 +223,10 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     sendMessage({ command: 'sendMessage', sessionId, message });
   }, [sendMessage]);
 
+  const executeSlashCommand = useCallback((sessionId: string, slashCommand: string) => {
+    sendMessage({ command: 'executeSlashCommand', sessionId, slashCommand });
+  }, [sendMessage]);
+
   const renameSession = useCallback((sessionId: string, newName: string) => {
     sendMessage({ command: 'renameSession', sessionId, newName });
   }, [sendMessage]);
@@ -199,6 +240,17 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     setActiveServiceInfo(serviceInfo);
   }, []);
 
+  // Send interactive response
+  const sendInteractiveResponse = useCallback((sessionId: string, command: string, selection: string | number, metadata?: any) => {
+    sendMessage({
+      command: 'interactiveResponse',
+      sessionId,
+      interactiveCommand: command,
+      selection,
+      metadata
+    });
+  }, [sendMessage]);
+
   return {
     sessions,
     activeSessionId,
@@ -209,8 +261,10 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     switchSession,
     closeSession,
     sendMessage: sendChatMessage,
+    executeSlashCommand,
     renameSession,
     refreshState,
-    onServiceInfoUpdate
+    onServiceInfoUpdate,
+    sendInteractiveResponse
   };
 }

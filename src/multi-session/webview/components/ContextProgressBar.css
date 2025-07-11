@@ -1,0 +1,189 @@
+/* ContextProgressBar Component Styles */
+
+.context-progress-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 12px;
+  background-color: var(--vscode-editor-background);
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+
+.progress-track {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  background: linear-gradient(
+    to right,
+    rgba(0, 255, 0, 0.1) 0%,
+    rgba(0, 255, 0, 0.1) 80%,
+    rgba(255, 255, 0, 0.1) 85%,
+    rgba(255, 165, 0, 0.1) 95%,
+    rgba(255, 0, 0, 0.1) 100%
+  );
+  border-radius: 4px;
+  border: 1px solid var(--vscode-widget-border);
+  overflow: hidden;
+}
+
+/* Green zone: 0-80% */
+.progress-fill-green {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: #00ff00;
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Warning zone: 80-100% with gradient */
+.progress-fill-warning {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: linear-gradient(
+    to right,
+    #ffff00 0%,
+    #ffa500 50%,
+    #ff0000 100%
+  );
+  border-radius: 3px;
+  transition: width 0.3s ease;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+}
+
+.warning-mark {
+  position: absolute;
+  top: -2px;
+  width: 2px;
+  height: 12px;
+  background-color: #ffffff;
+  border-radius: 1px;
+  box-shadow: 
+    0 0 2px rgba(0, 0, 0, 0.5),
+    0 0 4px rgba(255, 255, 255, 0.8);
+  z-index: 2;
+  cursor: help;
+  transform: translateX(-1px);
+}
+
+.warning-mark::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -1px;
+  width: 4px;
+  height: 4px;
+  background-color: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 3px rgba(255, 255, 255, 0.9);
+}
+
+.progress-indicator {
+  position: absolute;
+  top: -1px;
+  width: 6px;
+  height: 10px;
+  border-radius: 3px;
+  transform: translateX(-3px);
+  z-index: 1;
+  box-shadow: 
+    0 0 3px rgba(0, 0, 0, 0.4),
+    0 0 6px currentColor;
+  transition: left 0.3s ease, background-color 0.3s ease;
+}
+
+.token-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  font-family: var(--vscode-editor-font-family, 'Consolas', 'Courier New', monospace);
+}
+
+.left-info {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.right-info {
+  display: flex;
+  align-items: center;
+}
+
+.current-tokens {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+}
+
+.label {
+  color: var(--vscode-descriptionForeground);
+  opacity: 0.8;
+}
+
+.message-count-indicator {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+  font-size: 11px;
+}
+
+/* Responsive design */
+@media (max-width: 400px) {
+  .context-progress-bar {
+    padding: 4px 8px;
+  }
+  
+  .progress-track {
+    height: 6px;
+  }
+  
+  .token-info {
+    font-size: 9px;
+  }
+  
+  .percentage {
+    font-size: 8px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .progress-track {
+    border-width: 2px;
+  }
+  
+  .warning-mark {
+    background-color: var(--vscode-foreground);
+    width: 3px;
+  }
+  
+  .progress-fill {
+    box-shadow: none;
+    border: 1px solid var(--vscode-foreground);
+  }
+}
+
+/* Animation for smooth updates */
+@keyframes pulse-warning {
+  0%, 100% {
+    opacity: 1;
+    transform: translateX(-1px) scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: translateX(-1px) scale(1.2);
+  }
+}
+
+/* Warning state when approaching limit */
+.context-progress-bar.warning .warning-mark {
+  animation: pulse-warning 2s ease-in-out infinite;
+}
+
+.context-progress-bar.critical .progress-fill {
+  animation: pulse-warning 1s ease-in-out infinite;
+}

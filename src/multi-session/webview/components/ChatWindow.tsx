@@ -6,11 +6,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Session, Message, ServiceMessage } from '../../types/Session';
 import { ServiceInfoBlock } from './ServiceInfoBlock';
+import { CommandPalette } from './CommandPalette';
+import { useSlashCommands } from '../hooks/useSlashCommands';
 import './ChatWindow.css';
 
 interface ChatWindowProps {
   session: Omit<Session, 'terminal'> | null;
   onSendMessage: (sessionId: string, message: string) => void;
+  onExecuteSlashCommand: (sessionId: string, slashCommand: string) => void;
   isLoading?: boolean;
   activeServiceInfo?: ServiceMessage | null;
   onServiceInfoUpdate?: (serviceInfo: ServiceMessage) => void;
@@ -22,8 +25,10 @@ interface MessageItemProps {
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
+  onExecuteSlashCommand: (slashCommand: string) => void;
   disabled: boolean;
   placeholder: string;
+  activeServiceInfo?: ServiceMessage | null;
 }
 
 const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
@@ -50,9 +55,11 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
   );
 };
 
-const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled, placeholder }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onExecuteSlashCommand, disabled, placeholder, activeServiceInfo }) => {
   const [message, setMessage] = useState('');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const inputContainerRef = useRef<HTMLDivElement>(null);
+  const slashCommands = useSlashCommands();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,10 +69,22 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled, pl
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
+      slashCommands.hidePalette();
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle slash commands navigation
+    if (slashCommands.state.isVisible) {
+      switch (e.key) {
+        case 'ArrowUp':
+        case 'ArrowDown':
+        case 'Enter':
+        case 'Escape':
+          return; // Let CommandPalette handle these
+      }
+    }
+
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSubmit(e);
@@ -79,17 +98,77 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled, pl
     }
   };
 
+  const handleMessageChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const newMessage = e.target.value;
+    setMessage(newMessage);
+
+    // Handle slash commands
+    const isSlashCommand = newMessage.startsWith('/');
+    
+    console.log('Message changed:', newMessage, 'isSlashCommand:', isSlashCommand);
+    
+    if (isSlashCommand && newMessage.length >= 1) {
+      // Extract the command part (everything after /)
+      const commandPart = newMessage.slice(1);
+      
+      console.log('Showing palette with commandPart:', commandPart);
+      
+      // Calculate position for command palette (show above input)
+      if (inputContainerRef.current && textareaRef.current) {
+        const rect = inputContainerRef.current.getBoundingClientRect();
+        const position = {
+          top: rect.top - 400, // Show well above input (400px up)
+          left: rect.left
+        };
+        
+        console.log('Position calculated:', position);
+        slashCommands.showPalette(commandPart, position);
+      }
+    } else {
+      console.log('Hiding palette');
+      slashCommands.hidePalette();
+    }
+  };
+
+  const handleCommandSelect = (command: any) => {
+    // Execute slash command directly without user input
+    onExecuteSlashCommand(command.name);
+    
+    // Clear input and hide palette
+    setMessage('');
+    slashCommands.hidePalette();
+    
+    // Focus back to textarea
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
   useEffect(() => {
     handleTextareaResize();
   }, [message]);
 
+  // Auto-focus когда поле не заблокировано
+  useEffect(() => {
+    if (!disabled && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [disabled]);
+
+  // Auto-focus мгновенно когда статус меняется на completed
+  useEffect(() => {
+    if (activeServiceInfo?.status === 'completed' && !disabled && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [activeServiceInfo?.status, disabled]);
+
   return (
     <form className="message-input-form" onSubmit={handleSubmit}>
-      <div className="input-container">
+      <div className="input-container" ref={inputContainerRef}>
         <textarea
           ref={textareaRef}
           value={message}
-          onChange={(e) => setMessage(e.target.value)}
+          onChange={handleMessageChange}
           onKeyDown={handleKeyDown}
           placeholder={placeholder}
           disabled={disabled}
@@ -102,9 +181,16 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, disabled, pl
           className="send-button"
           title="Send message (Enter)"
         >
-          📤
+          Send
         </button>
       </div>
+      
+      <CommandPalette
+        state={slashCommands.state}
+        onCommandSelect={handleCommandSelect}
+        onHide={slashCommands.hidePalette}
+        onNavigate={slashCommands.navigate}
+      />
     </form>
   );
 };
@@ -153,6 +239,7 @@ const SessionNotReady: React.FC<{ session: Omit<Session, 'terminal'> }> = ({ ses
 export const ChatWindow: React.FC<ChatWindowProps> = ({ 
   session, 
   onSendMessage, 
+  onExecuteSlashCommand,
   isLoading = false,
   activeServiceInfo,
   onServiceInfoUpdate
@@ -196,16 +283,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   // Active session with chat interface
   return (
     <div className="chat-window">
-      <div className="session-header">
-        <div className="session-info">
-          <span className="session-name">{session.name}</span>
-          <span className="session-status ready">Ready</span>
-        </div>
-        <div className="message-count">
-          {session.messages.length} message{session.messages.length !== 1 ? 's' : ''}
-        </div>
-      </div>
-
       <div className="messages-container">
         {session.messages.length === 0 ? (
           <div className="no-messages">
@@ -219,19 +296,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             {session.messages.map((message, index) => (
               <div key={message.id} className="message-group">
                 <MessageItem message={message} />
-                
-                {/* 🎨 Показываем ServiceInfoBlock только после последнего сообщения */}
-                {(() => {
-                  const isLastMessage = index === session.messages.length - 1;
-                  const shouldShow = isLastMessage && activeServiceInfo;
-                  return shouldShow ? (
-                    <ServiceInfoBlock 
-                      serviceInfo={activeServiceInfo}
-                      onUpdate={onServiceInfoUpdate}
-                      isCompact={false}
-                    />
-                  ) : null;
-                })()}
               </div>
             ))}
             <div ref={messagesEndRef} />
@@ -239,14 +303,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         )}
       </div>
 
+      {/* 🎨 ServiceInfoBlock закреплён к нижнему колонтитулу */}
+      {activeServiceInfo && (
+        <ServiceInfoBlock 
+          key={`${activeServiceInfo.timestamp}-${activeServiceInfo.status}`}
+          serviceInfo={activeServiceInfo}
+          onUpdate={onServiceInfoUpdate}
+        />
+      )}
+
       <MessageInput
         onSendMessage={handleSendMessage}
+        onExecuteSlashCommand={(command) => onExecuteSlashCommand(session.id, command)}
         disabled={isLoading || session.status !== 'ready'}
         placeholder={
           isLoading ? 'Sending...' : 
           session.status !== 'ready' ? 'Session not ready...' :
           'Type your message to Claude Code...'
         }
+        activeServiceInfo={activeServiceInfo}
       />
     </div>
   );

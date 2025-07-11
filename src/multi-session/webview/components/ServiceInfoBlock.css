@@ -37,55 +37,6 @@
   border-left: 4px solid var(--vscode-terminal-ansiRed);
 }
 
-/* 🎨 Compact режим */
-.service-info-block.compact {
-  padding: 6px 12px;
-  cursor: pointer;
-  background: var(--vscode-badge-background);
-  border-radius: 16px;
-  display: inline-block;
-  margin: 4px 8px 4px 0;
-  border: 1px solid var(--vscode-badge-foreground);
-  transition: all 0.2s ease;
-}
-
-.service-info-block.compact:hover {
-  background: var(--vscode-button-hoverBackground);
-  transform: translateY(-1px);
-}
-
-.service-info-block.compact:focus {
-  outline: 2px solid var(--vscode-focusBorder);
-  outline-offset: 2px;
-}
-
-.compact-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 11px;
-  font-weight: 500;
-  color: var(--vscode-badge-foreground);
-}
-
-.tokens-compact {
-  color: var(--vscode-terminal-ansiBlue);
-  font-weight: 600;
-}
-
-.time-compact {
-  color: var(--vscode-descriptionForeground);
-  font-size: 10px;
-}
-
-.tools-compact {
-  color: var(--vscode-terminal-ansiGreen);
-  font-style: italic;
-  max-width: 100px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 
 /* 🎨 Заголовок */
 .service-header {
@@ -390,4 +341,116 @@
 
 .vscode-light .service-info-block:hover {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+/* 🎨 Новый компактный режим для нижнего колонтитула */
+.service-info-compact {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--vscode-input-background);
+  border-top: 1px solid var(--vscode-panel-border);
+  z-index: 100;
+  font-family: var(--vscode-font-family);
+}
+
+.compact-status-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 8px;
+  font-size: 9px;
+  min-height: 16px;
+}
+
+
+/* Название инструмента */
+.tool-name {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+  font-size: 11px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Статусный текст */
+.status-text {
+  font-size: 10px;
+  font-weight: 500;
+  flex-shrink: 0;
+  padding-left: 4px;
+}
+
+.status-text.status-processing {
+  color: var(--vscode-terminal-ansiBlue);
+  animation: text-blink 1.5s infinite;
+}
+
+.status-text.status-completed {
+  color: var(--vscode-terminal-ansiGreen);
+}
+
+.status-text.status-error {
+  color: var(--vscode-terminal-ansiRed);
+}
+
+.status-text.status-initializing {
+  color: var(--vscode-terminal-ansiYellow);
+}
+
+@keyframes text-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
+@keyframes status-pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.8; }
+  100% { opacity: 1; }
+}
+
+/* Цветовые варианты для разных статусов */
+.service-info-compact.status-processing {
+  border-top-color: var(--vscode-terminal-ansiBlue);
+}
+
+.service-info-compact.status-completed {
+  border-top-color: var(--vscode-terminal-ansiGreen);
+}
+
+.service-info-compact.status-error {
+  border-top-color: var(--vscode-terminal-ansiRed);
+}
+
+.service-info-compact.status-initializing {
+  border-top-color: var(--vscode-terminal-ansiYellow);
+}
+
+/* Адаптивность для компактного режима */
+@media (max-width: 400px) {
+  .compact-status-bar {
+    padding: 3px 8px;
+    gap: 6px;
+  }
+  
+  .tool-name {
+    font-size: 10px;
+  }
+  
+  .status-badge {
+    font-size: 9px;
+    padding: 1px 4px;
+  }
+}
+
+/* Отключение анимации для пользователей с ограниченными возможностями */
+@media (prefers-reduced-motion: reduce) {
+  .status-text.status-processing {
+    animation: none !important;
+  }
 }

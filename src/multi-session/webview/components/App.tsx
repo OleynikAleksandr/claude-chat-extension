@@ -3,10 +3,12 @@
  * Claude Chat Extension
  */
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { TabBar } from './TabBar';
 import { ChatWindow } from './ChatWindow';
+import { SessionPicker } from './SessionPicker';
 import { useVSCodeAPI } from '../hooks/useVSCodeAPI';
+import { ResumeSessionData } from '../../../interactive-commands/types';
 import './App.css';
 
 export const App: React.FC = () => {
@@ -20,9 +22,19 @@ export const App: React.FC = () => {
     switchSession,
     closeSession,
     sendMessage,
+    executeSlashCommand,
     refreshState,
-    onServiceInfoUpdate
+    onServiceInfoUpdate,
+    sendInteractiveResponse
   } = useVSCodeAPI();
+  
+  // State for interactive commands
+  const [interactiveCommand, setInteractiveCommand] = useState<{
+    sessionId: string;
+    command: string;
+    data: any;
+    prompt: string;
+  } | null>(null);
 
   const activeSession = sessions.find(session => session.id === activeSessionId) || null;
   const canCreateNewSession = sessions.length < 2;
@@ -30,7 +42,7 @@ export const App: React.FC = () => {
   const handleCreateSession = useCallback(() => {
     if (canCreateNewSession) {
       const sessionNumber = sessions.length + 1;
-      createSession(`Claude Chat ${sessionNumber}`);
+      createSession(`Session ${sessionNumber}`);
     }
   }, [canCreateNewSession, sessions.length, createSession]);
 
@@ -45,6 +57,45 @@ export const App: React.FC = () => {
   const handleSendMessage = useCallback((sessionId: string, message: string) => {
     sendMessage(sessionId, message);
   }, [sendMessage]);
+
+  const handleExecuteSlashCommand = useCallback((sessionId: string, slashCommand: string) => {
+    executeSlashCommand(sessionId, slashCommand);
+  }, [executeSlashCommand]);
+
+  // Handle interactive command response
+  const handleInteractiveSelect = useCallback((selection: string) => {
+    if (!interactiveCommand) return;
+    
+    sendInteractiveResponse(
+      interactiveCommand.sessionId,
+      interactiveCommand.command,
+      selection
+    );
+    
+    setInteractiveCommand(null);
+  }, [interactiveCommand, sendInteractiveResponse]);
+
+  const handleInteractiveCancel = useCallback(() => {
+    setInteractiveCommand(null);
+  }, []);
+
+  // Set up global handler for interactive commands
+  useEffect(() => {
+    (window as any).onInteractiveInputRequired = (message: any) => {
+      if (message.command === 'interactiveInputRequired') {
+        setInteractiveCommand({
+          sessionId: message.sessionId,
+          command: message.interactiveCommand,
+          data: message.data,
+          prompt: message.prompt
+        });
+      }
+    };
+
+    return () => {
+      delete (window as any).onInteractiveInputRequired;
+    };
+  }, []);
 
   if (error) {
     return (
@@ -71,11 +122,13 @@ export const App: React.FC = () => {
         onCloseSession={handleCloseSession}
         canCreateNewSession={canCreateNewSession}
         isLoading={isLoading}
+        cacheReadTokens={activeServiceInfo?.usage.cache_read_input_tokens || 0}
       />
       
       <ChatWindow
         session={activeSession}
         onSendMessage={handleSendMessage}
+        onExecuteSlashCommand={handleExecuteSlashCommand}
         isLoading={isLoading}
         activeServiceInfo={activeServiceInfo}
         onServiceInfoUpdate={onServiceInfoUpdate}
@@ -86,6 +139,16 @@ export const App: React.FC = () => {
           <div className="loading-spinner">🔄</div>
           <span>Loading...</span>
         </div>
+      )}
+      
+      {/* Interactive command UI */}
+      {interactiveCommand && interactiveCommand.command === '/resume' && (
+        <SessionPicker
+          sessionData={interactiveCommand.data as ResumeSessionData}
+          prompt={interactiveCommand.prompt}
+          onSelect={handleInteractiveSelect}
+          onCancel={handleInteractiveCancel}
+        />
       )}
     </div>
   );

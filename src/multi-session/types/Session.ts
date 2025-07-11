@@ -79,9 +79,11 @@ export type WebviewMessage =
   | { command: 'switchSession'; sessionId: string }
   | { command: 'closeSession'; sessionId: string }
   | { command: 'sendMessage'; sessionId: string; message: string }
+  | { command: 'executeSlashCommand'; sessionId: string; slashCommand: string }
   | { command: 'renameSession'; sessionId: string; newName: string }
   | { command: 'getSessionState' }
-  | { command: 'healthCheck' };
+  | { command: 'healthCheck' }
+  | { command: 'interactiveResponse'; sessionId: string; interactiveCommand: string; selection: string | number; metadata?: any };
 
 export type ExtensionMessage = 
   | { command: 'sessionsUpdated'; sessions: Omit<Session, 'terminal'>[] }
@@ -92,6 +94,7 @@ export type ExtensionMessage =
   | { command: 'messageResponse'; sessionId: string; success: boolean; response?: Message; error?: string }
   | { command: 'healthCheckResult'; healthStatus: [string, boolean][] }
   | { command: 'serviceInfoReceived'; sessionId: string; serviceInfo: ServiceMessage }
+  | { command: 'interactiveInputRequired'; sessionId: string; interactiveCommand: string; data: any; prompt: string }
   | { command: 'error'; message: string; sessionId?: string };
 
 export interface SessionManagerEvents {

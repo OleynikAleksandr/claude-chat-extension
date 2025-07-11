@@ -13,8 +13,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 16px;
-  background-color: var(--vscode-titleBar-inactiveBackground);
+  padding: 4px 8px;
+  background-color: var(--vscode-input-background);
   border-bottom: 1px solid var(--vscode-panel-border);
   flex-shrink: 0;
 }
@@ -27,6 +27,7 @@
 
 .session-name {
   font-weight: 600;
+  font-size: 7px;
   color: var(--vscode-titleBar-activeForeground);
 }
 
@@ -43,7 +44,7 @@
 }
 
 .message-count {
-  font-size: 12px;
+  font-size: 6px;
   color: var(--vscode-descriptionForeground);
 }
 
@@ -74,8 +75,8 @@
 
 /* Message Items */
 .message-item {
-  padding: 12px;
-  border-radius: 8px;
+  padding: 6px;
+  border-radius: 4px;
   max-width: 90%;
   word-wrap: break-word;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -85,12 +86,14 @@
   background-color: var(--vscode-inputOption-activeBackground);
   margin-left: auto;
   border-bottom-right-radius: 4px;
+  opacity: 0.8;
 }
 
 .message-item.assistant {
   background-color: var(--vscode-badge-background);
   margin-right: auto;
   border-bottom-left-radius: 4px;
+  opacity: 0.8;
 }
 
 .message-item.system {
@@ -136,7 +139,8 @@
 .message-content {
   line-height: 1.4;
   white-space: pre-wrap;
-  font-size: 13px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
 }
 
 /* Empty States */
@@ -316,7 +320,7 @@
   padding: 8px 12px;
   border: 1px solid var(--vscode-input-border);
   border-radius: 6px;
-  background-color: var(--vscode-input-background);
+  background-color: #000000;
   color: var(--vscode-input-foreground);
   font-family: var(--vscode-font-family);
   font-size: 14px;
@@ -339,16 +343,17 @@
 }
 
 .send-button {
-  padding: 8px 12px;
+  padding: 8px 16px;
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border: none;
   border-radius: 6px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: 12px;
+  font-weight: 500;
   transition: all 0.2s ease;
   flex-shrink: 0;
-  min-width: 44px;
+  min-width: 60px;
   height: 36px;
 }
 
