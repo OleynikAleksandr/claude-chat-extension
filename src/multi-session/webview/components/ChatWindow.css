@@ -299,6 +299,94 @@
   }
 }
 
+/* Tool Message Styles */
+.tool-message {
+  background-color: var(--vscode-editor-background);
+  border: none;
+  border-left: 3px solid var(--vscode-terminal-ansiGreen);
+  margin: 4px 0;
+  padding: 6px 8px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 13px;
+  border-radius: 0 4px 4px 0;
+}
+
+.tool-message.running {
+  border-left-color: var(--vscode-terminal-ansiYellow);
+}
+
+.tool-message.completed {
+  border-left-color: var(--vscode-terminal-ansiGreen);
+}
+
+.tool-message.error {
+  border-left-color: var(--vscode-terminal-ansiRed);
+}
+
+.tool-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.tool-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool-dot {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.tool-dot.running {
+  color: var(--vscode-terminal-ansiYellow);
+  animation: tool-blink 1s infinite;
+}
+
+.tool-dot.completed {
+  color: var(--vscode-terminal-ansiGreen);
+}
+
+.tool-dot.error {
+  color: var(--vscode-terminal-ansiRed);
+}
+
+.tool-name {
+  color: var(--vscode-foreground);
+  font-weight: 500;
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.tool-result {
+  margin-top: 4px;
+  display: flex;
+  align-items: flex-start;
+  color: var(--vscode-descriptionForeground);
+  font-size: 12px;
+}
+
+.result-prefix {
+  color: var(--vscode-descriptionForeground);
+  margin-right: 4px;
+  font-weight: bold;
+}
+
+.result-content {
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Blinking animation for running tools */
+@keyframes tool-blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
 /* Message Input */
 .message-input-form {
   flex-shrink: 0;

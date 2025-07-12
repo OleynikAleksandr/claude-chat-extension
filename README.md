@@ -1,6 +1,6 @@
 # ClaudeCodeBridge 🌉
 
-[![Version](https://img.shields.io/badge/version-0.10.19-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.10.19)
+[![Version](https://img.shields.io/badge/version-0.10.71-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.10.71)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-brightgreen.svg)](https://code.visualstudio.com/)
 [![GitHub Release](https://img.shields.io/github/v/release/OleynikAleksandr/claude-chat-extension)](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
@@ -9,14 +9,16 @@
 
 ClaudeCodeBridge enables seamless integration between VS Code and Anthropic's Claude Code CLI, providing a native chat interface with full bidirectional communication capabilities.
 
-## 🎉 Version 0.10.19 - Critical Context Window Fix
+## 🚀 Version 0.10.71 - OneShoot Process Architecture
 
-Latest release with **fully corrected context window calculation** for resumed sessions and complete Claude Code format compatibility.
+Latest release with **revolutionary OneShoot Process Architecture** based on extensive research of Claudia application, delivering 91% cost reduction on follow-up requests.
 
-### 🎯 Critical Fix
-- **Context Window**: Now correctly calculates as `cache_creation + cache_read` tokens
-- **Session Resume**: Perfect compatibility with `claude resume` command
-- **Immediate Display**: Shows accurate token counts from the first message
+### 🚀 Major New Features
+- **OneShoot Process Architecture**: One-time processes with `--print` and `--resume` flags
+- **91% Cost Reduction**: From $0.359 to $0.031 on follow-up messages through efficient caching
+- **Session Mode 'oneshoot'**: New session type for cost-effective communication
+- **Resume Functionality**: Seamless conversation continuation across requests
+- **JSON Response Parsing**: Full parsing of `stream-json` output from Claude Code
 
 ### ✨ Key Features
 
@@ -33,17 +35,33 @@ Latest release with **fully corrected context window calculation** for resumed s
 
 ## 🏗️ Architecture
 
-ClaudeCodeBridge uses a clean **two-flow architecture**:
+ClaudeCodeBridge supports **multiple session modes** for different use cases:
 
-### Flow 1: Extension → Terminal
+### Traditional Terminal Mode (terminal)
+**Two-flow architecture for real-time interaction:**
 ```
-VS Code Webview → Extension → Terminal → Claude Code CLI
+Flow 1: VS Code Webview → Extension → Terminal → Claude Code CLI
+Flow 2: Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webview
 ```
 
-### Flow 2: Terminal → Extension  
+### Process Mode (process)
+**Direct process communication with debugging support:**
 ```
-Claude Code CLI → JSONL File → File Watcher → Extension → VS Code Webview
+Extension → ProcessSessionManager → Terminal.app → Claude Code CLI
 ```
+
+### 🚀 OneShoot Mode (oneshoot) - NEW!
+**Cost-efficient one-time processes with resume:**
+```
+Extension → OneShootProcessSessionManager → claude --print --resume → JSON Response
+```
+
+#### OneShoot Architecture Benefits:
+- **91% Cost Reduction** on follow-up requests through Claude Code caching
+- **No Persistent Processes** - created on-demand for each message
+- **Session Resume** - automatic session_id management for conversation continuity
+- **JSON Response Parsing** - direct parsing of `stream-json` output
+- **Based on Claudia Research** - proven architecture from official Claudia application
 
 ## 🚀 Quick Start
 

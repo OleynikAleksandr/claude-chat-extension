@@ -31,7 +31,7 @@ interface MessageInputProps {
   activeServiceInfo?: ServiceMessage | null;
 }
 
-const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
+const MessageItem: React.FC<MessageItemProps & { isLastToolBeforeAssistant?: boolean }> = ({ message, isLastToolBeforeAssistant }) => {
   const formatTime = (date: Date) => {
     return new Intl.DateTimeFormat('en-US', {
       hour: '2-digit',
@@ -39,6 +39,30 @@ const MessageItem: React.FC<MessageItemProps> = ({ message }) => {
       second: '2-digit'
     }).format(new Date(date));
   };
+
+  // Handle tool message display
+  if (message.type === 'tool' && message.toolInfo) {
+    // Override status to 'completed' if this is the last tool before an assistant message
+    const displayStatus = isLastToolBeforeAssistant ? 'completed' : message.toolInfo.status;
+    
+    return (
+      <div className={`message-item tool-message ${displayStatus}`}>
+        <div className="tool-header">
+          <div className="tool-indicator">
+            <span className={`tool-dot ${displayStatus}`}>●</span>
+            <span className="tool-name">{message.content}</span>
+          </div>
+          <span className="message-time">{formatTime(message.timestamp)}</span>
+        </div>
+        {message.toolInfo.result && (
+          <div className="tool-result">
+            <span className="result-prefix">└ </span>
+            <span className="result-content">{message.toolInfo.result}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={`message-item ${message.type}`}>
@@ -293,11 +317,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         ) : (
           <div className="messages-list">
-            {session.messages.map((message, index) => (
-              <div key={message.id} className="message-group">
-                <MessageItem message={message} />
-              </div>
-            ))}
+            {session.messages.map((message, index) => {
+              // Check if this is the last tool message before an assistant message
+              let isLastToolBeforeAssistant = false;
+              
+              if (message.type === 'tool' && index < session.messages.length - 1) {
+                // Find the next non-tool message
+                for (let i = index + 1; i < session.messages.length; i++) {
+                  if (session.messages[i].type !== 'tool') {
+                    // If the next non-tool message is from assistant, mark all tools before it
+                    if (session.messages[i].type === 'assistant') {
+                      isLastToolBeforeAssistant = true;
+                    }
+                    break;
+                  }
+                }
+              }
+              
+              return (
+                <div key={message.id} className="message-group">
+                  <MessageItem 
+                    message={message} 
+                    isLastToolBeforeAssistant={isLastToolBeforeAssistant}
+                  />
+                </div>
+              );
+            })}
             <div ref={messagesEndRef} />
           </div>
         )}

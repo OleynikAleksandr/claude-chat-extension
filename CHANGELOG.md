@@ -5,6 +5,177 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.76] - 2025-07-12
+
+### 🔧 Enhanced: Smart Tool Status Management
+
+### Fixed
+- **Auto-complete Running Tools**: Previous tools with blinking yellow indicator now automatically complete when new elements appear
+- **Visual Feedback Improvement**: Running tools transition from yellow blinking to green completed state
+- **Status Consistency**: Ensures only one tool shows as "running" at any time
+
+### Enhanced
+- **Tool Lifecycle Management**: Added `completeAllRunningTools()` method for automatic status updates
+- **Progressive Status Updates**: Tools complete naturally as conversation progresses
+- **Better Visual Flow**: Cleaner transition between tool executions
+
+### Technical Details
+- Running tools auto-complete when:
+  - New tool starts execution
+  - Assistant text message appears
+  - Any new content block is processed
+- Prevents multiple blinking indicators simultaneously
+- Maintains pendingTools Map integrity
+
+## [0.10.75] - 2025-07-12
+
+### 🚀 BREAKTHROUGH: Real-time Streaming Tool Execution
+
+### Added
+- **Real-time JSON Streaming**: Complete rewrite of OneShoot architecture for live tool execution display
+- **Progressive Tool Visualization**: Tools appear instantly when execution starts, results update in real-time
+- **Sequential Execution Flow**: Perfect replication of terminal Claude behavior with proper timing
+- **Streaming Buffer Management**: Intelligent line-by-line JSON parsing for immediate UI updates
+- **Live Status Updates**: Dynamic tool status changes from running → completed/error with visual feedback
+
+### Enhanced
+- **Streaming Data Processing**: New `executeCommandStreaming()` method for real-time stdout processing
+- **Event-driven Architecture**: Immediate `onData` events for each JSON response as it arrives
+- **Tool State Management**: `pendingTools` Map for tracking active tool executions across streaming responses
+- **Progressive UI Updates**: Tools show immediately, results appear when ready, text follows naturally
+- **Smart Line Wrapping**: Long tool parameters automatically format with proper line breaks
+
+### Technical Implementation
+- **Streaming JSON Parser**: Processes incomplete JSON lines with intelligent buffering
+- **Real-time Event Handlers**: `handleOneShootStreamingData()` for immediate response processing
+- **Progressive Message Creation**: Separate handling for `tool_use`, `result`, and `text` blocks as they arrive
+- **Tool Correlation System**: Links tool executions with their results via `tool_use_id` mapping
+- **Buffer Management**: Handles partial JSON lines until complete for reliable parsing
+
+### User Experience Revolution
+- **Terminal-like Flow**: Exact replication of `claude` CLI tool execution sequence
+- **Visual Feedback**: See tools start immediately with blinking indicators
+- **Natural Progression**: Read → process → write → respond flow matches terminal behavior
+- **No Artificial Delays**: Everything appears when actually ready, not on arbitrary timers
+- **Professional Interface**: Matches the look and feel of professional CLI tools
+
+### Performance Improvements
+- **Zero Latency**: Tools display the moment they start executing
+- **Efficient Streaming**: Process JSON as it arrives, no waiting for complete responses
+- **Memory Optimization**: Streaming buffer management prevents memory accumulation
+- **Event-based Updates**: Only update UI when actual state changes occur
+
+### Architecture Changes
+- **OneShootProcessSessionManager**: Complete rewrite for streaming support
+- **DualSessionManager**: New streaming data handlers for real-time processing
+- **Session State**: Added `pendingTools` for tracking active executions
+- **Message Flow**: Changed from batch processing to progressive message creation
+
+## [0.10.74] - 2025-07-12
+
+### 🎯 MAJOR: Dynamic Tool Visualization for OneShoot Mode
+
+### Added
+- **Separate Message Rendering**: Each assistant response now displays as individual message blocks instead of combined output
+- **Real-time Tool Visualization**: Interactive display of tool execution with terminal-style formatting
+- **Animated Tool Status**: Blinking indicators for running tools with color-coded status (yellow → green/red)
+- **Structured Tool Output**: Format tools as `● ToolName(params)` with indented results `└ output`
+- **Dynamic Status Updates**: Real-time updates from 'running' → 'completed'/'error' states
+
+### Enhanced
+- **Tool Message Type**: New `'tool'` message type with `ToolExecutionInfo` interface
+- **Terminal-style Formatting**: Matches Claude terminal interface with proper indentation and symbols
+- **Result Processing**: Smart formatting of tool results with truncation for long outputs
+- **CSS Animations**: Smooth blinking animation for active tools (`@keyframes tool-blink`)
+- **Color Coding**: Status-based color scheme (yellow/green/red) matching terminal conventions
+
+### Technical Implementation
+- Modified `processOneShootResponses` to create separate messages for text and tool blocks
+- Added `toolMap` for tracking tool execution and result correlation via `tool_use_id`
+- Enhanced `MessageItem` component with specialized tool rendering
+- Implemented `formatToolResult` for intelligent output formatting
+- Added comprehensive CSS styles for tool messages with animations
+
+### User Experience
+- **Visual Feedback**: Clear indication of tool execution progress
+- **Organized Output**: Separate blocks for each response and tool execution
+- **Professional Look**: Terminal-inspired interface matching Claude Code CLI
+- **Real-time Updates**: Live status changes during tool execution
+
+### Compatibility
+- Fully backward compatible with existing OneShoot architecture
+- No changes to existing terminal or process session modes
+- Maintains all existing OneShoot features (resume, cost efficiency, etc.)
+
+## [0.10.73] - 2025-07-12
+
+### 🔧 HOTFIX: OneShoot Response Processing Stability
+
+### Fixed
+- **Multiple Response Handling**: Fixed UI instability when Claude sends multiple assistant messages
+- **Message Combining**: Combined multiple assistant responses into single message to prevent webview overload
+- **Event Processing**: Optimized messageReceived events to prevent UI crashes
+
+## [0.10.72] - 2025-07-12
+
+### 🔧 HOTFIX: OneShoot UI Integration
+
+### Fixed
+- **UI Integration**: Replaced Process button with OneShoot button (🚀 OneShoot)
+- **API Updates**: Updated all webview communication to use 'createOneShootSession' instead of 'createProcessSession'
+- **Type Safety**: Fixed TypeScript interfaces and message types
+- **User Experience**: OneShoot sessions now properly accessible through UI
+
+### Changed
+- Button text: "⚡ Process" → "🚀 OneShoot"
+- API command: 'createProcessSession' → 'createOneShootSession'
+- Session names: "Process X" → "OneShoot X"
+- Tooltips and labels updated for OneShoot terminology
+
+### Technical
+- Removed legacy Process architecture from UI layer
+- Updated WebviewMessage types for OneShoot support
+- Fixed session creation flow to use 'oneshoot' mode
+- Complete UI/backend integration for OneShoot architecture
+
+## [0.10.71] - 2025-07-12
+
+### 🚀 MAJOR: OneShoot Process Architecture Implementation
+
+### Added
+- **OneShootProcessSessionManager**: New architecture with one-time processes using `--print` and `--resume` flags
+- **Cost-Efficient Communication**: 91% cost reduction on follow-up requests through Claude Code caching
+- **Session Mode 'oneshoot'**: New session type for one-time processes with resume functionality
+- **JSON Response Parsing**: Full parsing of `stream-json` output from Claude Code
+- **Session ID Management**: Automatic extraction and persistence of Claude session IDs
+- **Resume Functionality**: Seamless continuation of conversations across multiple requests
+
+### Technical Implementation
+- Created `OneShootProcessSessionManager.ts` with full Claude Code integration
+- Extended `Session` interface with `oneShootSession` field
+- Added 'oneshoot' to `SessionMode` type
+- Integrated OneShoot sessions into `DualSessionManager`
+- Implemented event handlers for OneShoot session lifecycle
+- Added proper error handling and logging for OneShoot operations
+
+### Performance Benefits
+- **Token Efficiency**: Dramatic reduction in cache_creation_input_tokens on subsequent requests
+- **Cost Optimization**: From $0.359 to $0.031 (-91%) on follow-up messages
+- **Memory Efficiency**: No persistent processes, created on-demand
+- **Resume Support**: Full conversation context preservation
+
+### Architecture Improvements
+- Based on extensive research of Claudia application architecture
+- Uses proven `--print --output-format stream-json --verbose --dangerously-skip-permissions` flags
+- Proper working directory handling for resume functionality
+- JSON response parsing with type safety
+
+### Developer Experience
+- Full TypeScript support with proper interfaces
+- Comprehensive logging and debugging support
+- Error handling with fallback mechanisms
+- Compatible with existing session management
+
 ## [0.10.22] - 2025-07-10
 
 ### 🎨 Header Design Improvements: Proper Font Sizes Based on Figma Mockup

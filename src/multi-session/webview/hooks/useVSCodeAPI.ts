@@ -12,7 +12,7 @@ declare const vscode: {
 };
 
 export interface VSCodeAPIHook {
-  sessions: Omit<Session, 'terminal'>[];
+  sessions: Omit<Session, 'terminal' | 'processSession'>[];
   activeSessionId: string | null;
   isLoading: boolean;
   error: string | null;
@@ -22,6 +22,7 @@ export interface VSCodeAPIHook {
   
   // Actions
   createSession: (name?: string) => void;
+  createOneShootSession: (name?: string) => void;
   switchSession: (sessionId: string) => void;
   closeSession: (sessionId: string) => void;
   sendMessage: (sessionId: string, message: string) => void;
@@ -211,6 +212,13 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     sendMessage({ command: 'createSession', name });
   }, [sendMessage]);
 
+  const createOneShootSession = useCallback((name?: string) => {
+    setIsLoading(true);
+    setError(null);
+    sendMessage({ command: 'createOneShootSession', name });
+  }, [sendMessage]);
+
+
   const switchSession = useCallback((sessionId: string) => {
     sendMessage({ command: 'switchSession', sessionId });
   }, [sendMessage]);
@@ -258,6 +266,7 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     error,
     activeServiceInfo,
     createSession,
+    createOneShootSession,
     switchSession,
     closeSession,
     sendMessage: sendChatMessage,

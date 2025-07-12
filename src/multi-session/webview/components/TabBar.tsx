@@ -9,11 +9,11 @@ import { ContextProgressBar } from './ContextProgressBar';
 import './TabBar.css';
 
 interface TabBarProps {
-  sessions: Omit<Session, 'terminal'>[];
+  sessions: Omit<Session, 'terminal' | 'processSession'>[];
   activeSessionId: string | null;
   onTabSwitch: (sessionId: string) => void;
   onNewSession: () => void;
-  onNewPtySession: () => void;
+  onNewProcessSession: () => void;
   onCloseSession: (sessionId: string) => void;
   canCreateNewSession: boolean;
   isLoading?: boolean;
@@ -21,7 +21,7 @@ interface TabBarProps {
 }
 
 interface SessionTabProps {
-  session: Omit<Session, 'terminal'>;
+  session: Omit<Session, 'terminal' | 'processSession'>;
   isActive: boolean;
   onSelect: () => void;
   onClose: () => void;
@@ -59,9 +59,12 @@ const SessionTab: React.FC<SessionTabProps> = ({ session, isActive, onSelect, on
     <div 
       className={`tab ${isActive ? 'active' : ''} ${session.status}`}
       onClick={onSelect}
-      title={`${session.name} - ${session.status}`}
+      title={`${session.name} - ${session.status} (${session.mode || 'terminal'})`}
     >
-      <span className="tab-name">{session.name}</span>
+      <span className="tab-name">
+        {session.name}
+        {session.mode === 'process' && <span className="mode-badge">⚡</span>}
+      </span>
       {session.status !== 'creating' && (
         <button 
           className="close-button"
@@ -80,7 +83,7 @@ export const TabBar: React.FC<TabBarProps> = ({
   activeSessionId,
   onTabSwitch,
   onNewSession,
-  onNewPtySession,
+  onNewProcessSession,
   onCloseSession,
   canCreateNewSession,
   isLoading = false,
@@ -110,15 +113,15 @@ export const TabBar: React.FC<TabBarProps> = ({
           >
             {isLoading ? '🔄' : '🖥️ Terminal'}
           </button>
-          
           <button 
-            className={`new-pty-session-button ${!canCreateNewSession ? 'disabled' : ''}`}
-            onClick={onNewPtySession}
+            className={`new-session-button process ${!canCreateNewSession ? 'disabled' : ''}`}
+            onClick={onNewProcessSession}
             disabled={!canCreateNewSession || isLoading}
-            title={canCreateNewSession ? 'Create new PTY session (full CLI control)' : 'Maximum sessions reached'}
+            title={canCreateNewSession ? 'Create new OneShoot session' : 'Maximum sessions reached'}
           >
-            {isLoading ? '🔄' : '⚡ PTY'}
+            {isLoading ? '🔄' : '🚀 OneShoot'}
           </button>
+          
           
           <div className="session-count">
             {sessions.length}/2

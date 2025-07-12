@@ -174,9 +174,9 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
       switch (message.command) {
         case 'createSession':
           try {
-            this.outputChannel.appendLine(`🆕 Creating new session: ${message.name || 'Unnamed'}`);
+            this.outputChannel.appendLine(`🆕 Creating new terminal session: ${message.name || 'Unnamed'}`);
             const session = await this.sessionManager.createSession(message.name);
-            this.outputChannel.appendLine(`✅ Session created successfully: ${session.name} (${session.id})`);
+            this.outputChannel.appendLine(`✅ Terminal session created successfully: ${session.name} (${session.id})`);
             
             // Send success feedback
             this.sendMessage({
@@ -185,6 +185,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
               session: {
                 id: session.id,
                 name: session.name,
+                mode: session.mode,
                 messages: session.messages,
                 status: session.status,
                 createdAt: session.createdAt,
@@ -192,10 +193,39 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
               }
             });
           } catch (error) {
-            this.outputChannel.appendLine(`❌ Failed to create session: ${error}`);
+            this.outputChannel.appendLine(`❌ Failed to create terminal session: ${error}`);
             this.sendMessage({
               command: 'error',
-              message: `Failed to create session: ${error}`
+              message: `Failed to create terminal session: ${error}`
+            });
+          }
+          break;
+
+        case 'createOneShootSession':
+          try {
+            this.outputChannel.appendLine(`🚀 Creating new OneShoot session: ${message.name || 'Unnamed'}`);
+            const session = await this.sessionManager.createSession(message.name, 'oneshoot');
+            this.outputChannel.appendLine(`✅ OneShoot session created successfully: ${session.name} (${session.id})`);
+            
+            // Send success feedback
+            this.sendMessage({
+              command: 'sessionCreated',
+              sessionId: session.id,
+              session: {
+                id: session.id,
+                name: session.name,
+                mode: session.mode,
+                messages: session.messages,
+                status: session.status,
+                createdAt: session.createdAt,
+                lastActiveAt: session.lastActiveAt
+              }
+            });
+          } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to create process session: ${error}`);
+            this.sendMessage({
+              command: 'error',
+              message: `Failed to create process session: ${error}`
             });
           }
           break;
@@ -338,6 +368,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
     const sessions = this.sessionManager.getAllSessions().map(session => ({
       id: session.id,
       name: session.name,
+      mode: session.mode,
       messages: session.messages,
       status: session.status,
       createdAt: session.createdAt,

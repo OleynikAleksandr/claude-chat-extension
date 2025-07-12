@@ -4,15 +4,23 @@
  */
 
 import * as vscode from 'vscode';
+import { ProcessSessionManager } from '../managers/ProcessSessionManager';
+import { OneShootProcessSessionManager } from '../managers/OneShootProcessSessionManager';
+
+export type SessionMode = 'terminal' | 'process' | 'oneshoot';
 
 export interface Session {
   id: string;
   name: string;
-  terminal: vscode.Terminal;
+  mode: SessionMode;
+  terminal?: vscode.Terminal;  // Only for terminal mode
+  processSession?: ProcessSessionManager;  // Only for process mode
+  oneShootSession?: OneShootProcessSessionManager;  // OneShoot process mode
   messages: Message[];
   status: SessionStatus;
   createdAt: Date;
   lastActiveAt: Date;
+  pendingTools?: Map<string, Message>;  // For tracking streaming tool execution
 }
 
 export type SessionStatus = 'creating' | 'starting' | 'ready' | 'error' | 'closed';
@@ -21,8 +29,19 @@ export interface Message {
   id: string;
   content: string;
   timestamp: Date;
-  type: 'user' | 'assistant' | 'system';
+  type: 'user' | 'assistant' | 'system' | 'tool';
   sessionId: string;
+  toolInfo?: ToolExecutionInfo;
+}
+
+export interface ToolExecutionInfo {
+  name: string;
+  input: any;
+  result?: string;
+  status: 'pending' | 'running' | 'completed' | 'error';
+  duration?: number;
+  startTime?: Date;
+  endTime?: Date;
 }
 
 // 🎨 Enhanced Service Information Types
@@ -75,7 +94,8 @@ export interface SessionConfig {
 
 // Webview ↔ Extension Communication
 export type WebviewMessage = 
-  | { command: 'createSession'; name?: string }
+  | { command: 'createSession'; name?: string; mode?: SessionMode }
+  | { command: 'createOneShootSession'; name?: string }
   | { command: 'switchSession'; sessionId: string }
   | { command: 'closeSession'; sessionId: string }
   | { command: 'sendMessage'; sessionId: string; message: string }
@@ -86,11 +106,11 @@ export type WebviewMessage =
   | { command: 'interactiveResponse'; sessionId: string; interactiveCommand: string; selection: string | number; metadata?: any };
 
 export type ExtensionMessage = 
-  | { command: 'sessionsUpdated'; sessions: Omit<Session, 'terminal'>[] }
+  | { command: 'sessionsUpdated'; sessions: Omit<Session, 'terminal' | 'processSession'>[] }
   | { command: 'activeSessionChanged'; sessionId: string }
   | { command: 'sessionStatusChanged'; sessionId: string; status: SessionStatus }
   | { command: 'messageReceived'; sessionId: string; message: Message }
-  | { command: 'sessionCreated'; sessionId: string; session: Omit<Session, 'terminal'> }
+  | { command: 'sessionCreated'; sessionId: string; session: Omit<Session, 'terminal' | 'processSession'> }
   | { command: 'messageResponse'; sessionId: string; success: boolean; response?: Message; error?: string }
   | { command: 'healthCheckResult'; healthStatus: [string, boolean][] }
   | { command: 'serviceInfoReceived'; sessionId: string; serviceInfo: ServiceMessage }

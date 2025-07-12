@@ -19,6 +19,7 @@ export const App: React.FC = () => {
     error,
     activeServiceInfo,
     createSession,
+    createOneShootSession,
     switchSession,
     closeSession,
     sendMessage,
@@ -46,14 +47,13 @@ export const App: React.FC = () => {
     }
   }, [canCreateNewSession, sessions.length, createSession]);
 
-  const handleCreatePtySession = useCallback(() => {
+  const handleCreateOneShootSession = useCallback(() => {
     if (canCreateNewSession) {
       const sessionNumber = sessions.length + 1;
-      // TODO: Implement PTY session creation
-      console.log('Creating PTY session...');
-      alert('PTY Session creation coming soon! This will use child_process with full CLI control.');
+      createOneShootSession(`OneShoot ${sessionNumber}`);
     }
-  }, [canCreateNewSession, sessions.length]);
+  }, [canCreateNewSession, sessions.length, createOneShootSession]);
+
 
   const handleTabSwitch = useCallback((sessionId: string) => {
     switchSession(sessionId);
@@ -128,7 +128,7 @@ export const App: React.FC = () => {
         activeSessionId={activeSessionId}
         onTabSwitch={handleTabSwitch}
         onNewSession={handleCreateSession}
-        onNewPtySession={handleCreatePtySession}
+        onNewProcessSession={handleCreateOneShootSession}
         onCloseSession={handleCloseSession}
         canCreateNewSession={canCreateNewSession}
         isLoading={isLoading}

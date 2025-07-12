@@ -5,9 +5,11 @@
  */
 
 import * as vscode from 'vscode';
-import { Session, Message, ServiceMessage } from '../types/Session';
+import { Session, Message, ServiceMessage, SessionMode } from '../types/Session';
 import { JsonlResponseMonitor } from '../monitors/JsonlResponseMonitor';
 import { InteractiveCommandManager, UserResponse } from '../../interactive-commands';
+import { ProcessSessionFactory } from './ProcessSessionManager';
+import { OneShootProcessSessionFactory } from './OneShootProcessSessionManager';
 
 export class DualSessionManager {
   private sessions: Map<string, Session> = new Map();
@@ -17,6 +19,7 @@ export class DualSessionManager {
   private jsonlMonitor: JsonlResponseMonitor;
   private sessionMonitoringStatus: Map<string, boolean> = new Map(); // Отслеживание статуса мониторинга
   private interactiveCommandManager: InteractiveCommandManager;
+  private processSessionFactory: typeof ProcessSessionFactory;
   
   // Event callbacks
   private onSessionCreatedCallback?: (session: Session) => void;
@@ -49,11 +52,14 @@ export class DualSessionManager {
       }
     });
     
+    // Инициализация фабрики процесс-сессий
+    this.processSessionFactory = ProcessSessionFactory;
+    
     this.setupTerminalEventListeners();
   }
 
   // Core Session Management
-  async createSession(name?: string): Promise<Session> {
+  async createSession(name?: string, mode: SessionMode = 'terminal'): Promise<Session> {
     if (this.sessions.size >= this.maxSessions) {
       throw new Error(`Maximum ${this.maxSessions} sessions allowed`);
     }
@@ -66,7 +72,9 @@ export class DualSessionManager {
     const session: Session = {
       id: sessionId,
       name: sessionName,
-      terminal: null as any, // Will be created below
+      mode: mode,
+      terminal: undefined,
+      processSession: undefined,
       messages: [],
       status: 'creating',
       createdAt: new Date(),
@@ -76,22 +84,71 @@ export class DualSessionManager {
     this.sessions.set(sessionId, session);
 
     try {
-      // Create terminal
-      const terminal = await this.createTerminal(sessionName);
-      session.terminal = terminal;
-      session.status = 'starting';
+      if (mode === 'terminal') {
+        // Create VS Code terminal
+        const terminal = await this.createTerminal(sessionName);
+        session.terminal = terminal;
+        session.status = 'starting';
 
-      // Start Claude Code
-      await this.startClaudeCode(session);
+        // Start Claude Code in terminal
+        await this.startClaudeCode(session);
+        
+        // **НЕ запускаем JSONL мониторинг при создании - только после первого сообщения**
+        this.sessionMonitoringStatus.set(sessionId, false);
+        this.outputChannel.appendLine(`📡 JSONL monitoring will start after first message for session: ${sessionName}`);
+      } else if (mode === 'process') {
+        // Create process session
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        const workingDirectory = workspaceFolder?.uri.fsPath || process.cwd();
+        
+        const processSession = this.processSessionFactory.create({
+          sessionId: sessionId,
+          sessionName: sessionName,
+          workingDirectory: workingDirectory,
+          outputChannel: this.outputChannel,
+          debugMode: true // Enable visible Terminal.app for debugging Claudia approach
+        });
+        
+        session.processSession = processSession;
+        session.status = 'starting';
+        
+        // Setup process event handlers
+        this.setupProcessEventHandlers(session);
+        
+        // Start process session
+        await processSession.start();
+        
+        // Start Claude Code in process
+        await this.startClaudeCodeInProcess(session);
+      } else if (mode === 'oneshoot') {
+        // Create OneShoot process session
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        const workingDirectory = workspaceFolder?.uri.fsPath || process.cwd();
+        
+        const oneShootSession = OneShootProcessSessionFactory.create({
+          sessionId: sessionId,
+          sessionName: sessionName,
+          workingDirectory: workingDirectory,
+          outputChannel: this.outputChannel
+        });
+        
+        session.oneShootSession = oneShootSession;
+        session.status = 'starting';
+        
+        // Setup OneShoot event handlers
+        this.setupOneShootEventHandlers(session);
+        
+        // OneShoot sessions are ready immediately (no persistent process)
+        session.status = 'ready';
+        this.fireEvent('sessionStatusChanged', sessionId, 'ready');
+        
+        this.outputChannel.appendLine(`OneShoot session ready: ${sessionName}`);
+      }
       
       // Make this session active
       await this.switchToSession(sessionId);
 
-      // **НЕ запускаем JSONL мониторинг при создании - только после первого сообщения**
-      this.sessionMonitoringStatus.set(sessionId, false);
-      this.outputChannel.appendLine(`📡 JSONL monitoring will start after first message for session: ${sessionName}`);
-
-      this.outputChannel.appendLine(`Session created successfully: ${sessionName}`);
+      this.outputChannel.appendLine(`Session created successfully: ${sessionName} (${mode} mode)`);
       this.fireEvent('sessionCreated', session);
 
       return session;
@@ -109,17 +166,27 @@ export class DualSessionManager {
       throw new Error(`Session ${sessionId} not found`);
     }
 
-    this.outputChannel.appendLine(`Closing session: ${session.name} (${sessionId})`);
+    this.outputChannel.appendLine(`Closing session: ${session.name} (${sessionId}, ${session.mode} mode)`);
 
-    // **Останавливаем JSONL мониторинг для закрываемой сессии**
-    this.jsonlMonitor.stopMonitoring(sessionId);
-    this.sessionMonitoringStatus.delete(sessionId);
-    
-    // Останавливаем мониторинг интерактивных команд
-    this.interactiveCommandManager.stopCommandTracking(sessionId, session.terminal);
+    if (session.mode === 'terminal') {
+      // **Останавливаем JSONL мониторинг для закрываемой сессии**
+      this.jsonlMonitor.stopMonitoring(sessionId);
+      this.sessionMonitoringStatus.delete(sessionId);
+      
+      // Останавливаем мониторинг интерактивных команд
+      if (session.terminal) {
+        this.interactiveCommandManager.stopCommandTracking(sessionId, session.terminal);
+        // Close terminal
+        session.terminal.dispose();
+      }
+    } else if (session.mode === 'process' && session.processSession) {
+      // Close process session
+      await session.processSession.dispose();
+    } else if (session.mode === 'oneshoot' && session.oneShootSession) {
+      // Close OneShoot session
+      await session.oneShootSession.dispose();
+    }
 
-    // Close terminal
-    session.terminal.dispose();
     session.status = 'closed';
 
     // Remove from sessions
@@ -144,7 +211,7 @@ export class DualSessionManager {
       throw new Error(`Session ${sessionId} not found`);
     }
 
-    this.outputChannel.appendLine(`Switching to session: ${session.name} (${sessionId})`);
+    this.outputChannel.appendLine(`Switching to session: ${session.name} (${sessionId}, ${session.mode} mode)`);
 
     // Hide current active terminal if any
     const currentActiveSession = this.getActiveSession();
@@ -156,13 +223,21 @@ export class DualSessionManager {
     // Update last active time
     session.lastActiveAt = new Date();
 
-    // Critical: Show terminal and ensure it's focused
-    this.outputChannel.appendLine(`Showing terminal for session: ${session.name}`);
-    session.terminal.show(true); // preserveFocus = true to ensure terminal gets focus
+    // Mode-specific switching logic
+    if (session.mode === 'terminal') {
+      // Critical: Show terminal and ensure it's focused
+      if (session.terminal) {
+        this.outputChannel.appendLine(`Showing terminal for session: ${session.name}`);
+        session.terminal.show(true); // preserveFocus = true to ensure terminal gets focus
 
-    // Additional show call for reliability (crucial for Claude CLI)
-    await new Promise(resolve => setTimeout(resolve, 100));
-    session.terminal.show(true);
+        // Additional show call for reliability (crucial for Claude CLI)
+        await new Promise(resolve => setTimeout(resolve, 100));
+        session.terminal.show(true);
+      }
+    } else if (session.mode === 'process') {
+      // Process sessions don't have a visual terminal to show
+      this.outputChannel.appendLine(`Switched to process session: ${session.name}`);
+    }
 
     // Update active session
     this.activeSessionId = sessionId;
@@ -206,37 +281,76 @@ export class DualSessionManager {
     // Fire event for user message
     this.fireEvent('messageReceived', sessionId, messageObj);
 
-    // **ПОТОК 1: Extension → Terminal** 
-    // Простая отправка сообщения в терминал с автоматическим Enter
-    session.terminal.sendText(message, true);
-    
-    // Дополнительная гарантия Enter для Claude CLI с увеличенной паузой для длинных сообщений
-    const delay = Math.max(500, message.length * 2); // Минимум 500ms, +2ms за символ
-    this.outputChannel.appendLine(`⏰ Waiting ${delay}ms before additional Enter for message length: ${message.length}`);
-    await new Promise(resolve => setTimeout(resolve, delay));
-    session.terminal.sendText('', true);
-    
-    // **ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 1: Запуск JSONL мониторинга после первого сообщения**
-    const isMonitoringStarted = this.sessionMonitoringStatus.get(sessionId);
-    if (!isMonitoringStarted) {
-      this.outputChannel.appendLine(`🚀 Starting JSONL monitoring after first message for session: ${session.name}`);
-      this.sessionMonitoringStatus.set(sessionId, true);
+    // Send message based on session mode
+    if (session.mode === 'terminal') {
+      // **ПОТОК 1: Extension → Terminal** 
+      if (!session.terminal) {
+        throw new Error(`Terminal not available for session ${sessionId}`);
+      }
       
-      // Задержка перед поиском JSONL файла (Claude Code создает файл после обработки сообщения)
-      this.outputChannel.appendLine(`⏳ Waiting 3 seconds for Claude Code to create new JSONL file...`);
-      setTimeout(() => {
-        this.jsonlMonitor.startMonitoring(session.id, session.name);
-        this.outputChannel.appendLine(`✅ JSONL monitoring started with delay for session: ${session.name}`);
-      }, 3000); // 3 секунды задержка
+      // Send to VS Code terminal
+      session.terminal.sendText(message, true);
+      
+      // Дополнительная гарантия Enter для Claude CLI с увеличенной паузой для длинных сообщений
+      const delay = Math.max(500, message.length * 2); // Минимум 500ms, +2ms за символ
+      this.outputChannel.appendLine(`⏰ Waiting ${delay}ms before additional Enter for message length: ${message.length}`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      session.terminal.sendText('', true);
+      
+      // **ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 2: Принудительное обновление терминала для длинных сообщений**
+      if (message.length > 200) { // Для сообщений длиннее 200 символов
+        this.outputChannel.appendLine(`🔄 Force refreshing terminal for long message (${message.length} chars)`);
+        // Показать и сфокусировать терминал
+        session.terminal.show(true);
+      }
+      
+      // **ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 1: Запуск JSONL мониторинга после первого сообщения**
+      const isMonitoringStarted = this.sessionMonitoringStatus.get(sessionId);
+      if (!isMonitoringStarted) {
+        this.outputChannel.appendLine(`🚀 Starting JSONL monitoring after first message for session: ${session.name}`);
+        this.sessionMonitoringStatus.set(sessionId, true);
+        
+        // Задержка перед поиском JSONL файла (Claude Code создает файл после обработки сообщения)
+        this.outputChannel.appendLine(`⏳ Waiting 3 seconds for Claude Code to create new JSONL file...`);
+        setTimeout(() => {
+          this.jsonlMonitor.startMonitoring(session.id, session.name);
+          this.outputChannel.appendLine(`✅ JSONL monitoring started with delay for session: ${session.name}`);
+        }, 3000); // 3 секунды задержка
+      }
+    } else if (session.mode === 'process' && session.processSession) {
+      // **ПОТОК 1: Extension → Process (Terminal.app)**
+      session.processSession.sendMessage(message);
+      this.outputChannel.appendLine(`📤 Message sent to process session: ${session.name}`);
+      
+      // Для Process сессий используем прямое чтение из Terminal.app через AppleScript
+      // НЕ используем JSONL мониторинг - читаем stdout напрямую
+    } else if (session.mode === 'oneshoot' && session.oneShootSession) {
+      // **ПОТОК 1: Extension → OneShoot Process (Streaming)**
+      try {
+        this.outputChannel.appendLine(`📤 Starting OneShoot message for session: ${session.name}`);
+        
+        // Setup streaming data handler
+        session.oneShootSession.onData = (jsonLine: string) => {
+          this.handleOneShootStreamingData(sessionId, jsonLine);
+        };
+        
+        // Start streaming execution
+        await session.oneShootSession.sendMessage(message);
+        this.outputChannel.appendLine(`✅ OneShoot message completed for session: ${session.name}`);
+        
+      } catch (error) {
+        this.outputChannel.appendLine(`❌ OneShoot sendMessage error: ${error}`);
+        // Error is already logged, OneShoot errors are handled internally
+      }
+    } else {
+      throw new Error(`Invalid session mode or session not properly initialized: ${session.mode}`);
     }
-    
-    // **ИСПРАВЛЕНИЕ ПРОБЛЕМЫ 2: Принудительное обновление терминала для длинных сообщений**
-    if (message.length > 200) { // Для сообщений длиннее 200 символов
-      this.outputChannel.appendLine(`🔄 Force refreshing terminal for long message (${message.length} chars)`);
       
-      // Показать и сфокусировать терминал
-      session.terminal.show(true);
-      
+    // Update last active time
+    session.lastActiveAt = new Date();
+
+    // Terminal-specific post-processing
+    if (session.mode === 'terminal') {
       // Дополнительная пауза для визуального обновления
       await new Promise(resolve => setTimeout(resolve, 200));
       
@@ -248,11 +362,8 @@ export class DualSessionManager {
         this.outputChannel.appendLine(`⚠️ Terminal focus command failed: ${error}`);
       }
     }
-    
-    // Update last active time
-    session.lastActiveAt = new Date();
 
-    this.outputChannel.appendLine(`✅ Message sent to terminal: ${session.name}`);
+    this.outputChannel.appendLine(`✅ Message sent to ${session.mode} session: ${session.name}`);
   }
 
   async executeSlashCommand(sessionId: string, slashCommand: string): Promise<void> {
@@ -267,26 +378,35 @@ export class DualSessionManager {
 
     this.outputChannel.appendLine(`⚡ Executing slash command in session ${sessionId}: ${slashCommand}`);
 
-    // Проверяем, является ли команда интерактивной
-    if (this.interactiveCommandManager.isInteractiveCommand(slashCommand)) {
-      this.outputChannel.appendLine(`🔄 Interactive command detected: ${slashCommand} - setting up response monitoring`);
-      // Начинаем отслеживание интерактивной команды
-      this.interactiveCommandManager.startCommandTracking(sessionId, slashCommand, session.terminal);
-    }
+    if (session.mode === 'terminal') {
+      if (!session.terminal) {
+        throw new Error(`Terminal not available for session ${sessionId}`);
+      }
+      
+      // Use interactive command manager
+      if (this.interactiveCommandManager.isInteractiveCommand(slashCommand)) {
+        this.outputChannel.appendLine(`🔄 Interactive command detected: ${slashCommand} - setting up response monitoring`);
+        this.interactiveCommandManager.startCommandTracking(sessionId, slashCommand, session.terminal);
+      }
 
-    // **Прямое выполнение слэш-команды в терминале с принудительным Enter**
-    // Отправляем команду без автоматического Enter
-    session.terminal.sendText(slashCommand, false);
-    
-    // **Принудительная отправка Enter для выполнения команды**
-    this.outputChannel.appendLine(`⏎ Sending Enter to execute command`);
-    await new Promise(resolve => setTimeout(resolve, 50));
-    session.terminal.sendText('\r', false);
+      // Send to VS Code terminal
+      session.terminal.sendText(slashCommand, false);
+      await new Promise(resolve => setTimeout(resolve, 50));
+      session.terminal.sendText('\r', false);
+    } else if (session.mode === 'process' && session.processSession) {
+      // Send to process session
+      session.processSession.executeSlashCommand(slashCommand);
+    } else if (session.mode === 'oneshoot' && session.oneShootSession) {
+      // Send to OneShoot session
+      session.oneShootSession.executeSlashCommand(slashCommand);
+    } else {
+      throw new Error(`Invalid session mode or session not properly initialized: ${session.mode}`);
+    }
     
     // Update last active time
     session.lastActiveAt = new Date();
 
-    this.outputChannel.appendLine(`✅ Slash command executed in terminal: ${session.name}`);
+    this.outputChannel.appendLine(`✅ Slash command executed in ${session.mode} session: ${session.name}`);
   }
 
   /**
@@ -300,6 +420,10 @@ export class DualSessionManager {
 
     this.outputChannel.appendLine(`📝 Handling interactive response for session ${response.sessionId}: ${response.selection}`);
 
+    if (!session.terminal) {
+      throw new Error(`Terminal not available for session ${response.sessionId}`);
+    }
+    
     // Получаем отформатированный ответ для терминала
     const terminalResponse = this.interactiveCommandManager.handleUserResponse(response);
     
@@ -375,20 +499,30 @@ export class DualSessionManager {
     return this.sessions.size < this.maxSessions;
   }
 
-  // Terminal Health Monitoring
+  // Session Health Monitoring
   async checkSessionHealth(): Promise<Map<string, boolean>> {
     const healthStatus = new Map<string, boolean>();
     
     for (const [sessionId, session] of this.sessions) {
       try {
-        // Check if terminal still exists and is healthy
-        const pid = await session.terminal.processId;
-        const isHealthy = (pid !== undefined) && (session.status === 'ready' || session.status === 'starting');
+        let isHealthy = false;
+        
+        if (session.mode === 'terminal' && session.terminal) {
+          // Check if terminal still exists and is healthy
+          const pid = await session.terminal.processId;
+          isHealthy = (pid !== undefined) && (session.status === 'ready' || session.status === 'starting');
+        } else if (session.mode === 'process' && session.processSession) {
+          // Check if process session is alive
+          isHealthy = session.processSession.isAlive() && (session.status === 'ready' || session.status === 'starting');
+        } else if (session.mode === 'oneshoot' && session.oneShootSession) {
+          // OneShoot sessions are always healthy if they exist
+          isHealthy = session.oneShootSession.isAlive() && (session.status === 'ready' || session.status === 'starting');
+        }
         
         healthStatus.set(sessionId, isHealthy);
         
         if (!isHealthy) {
-          this.outputChannel.appendLine(`Session ${session.name} (${sessionId}) appears unhealthy. PID: ${pid}, Status: ${session.status}`);
+          this.outputChannel.appendLine(`Session ${session.name} (${sessionId}, ${session.mode}) appears unhealthy. Status: ${session.status}`);
         }
       } catch (error) {
         this.outputChannel.appendLine(`Error checking health for session ${sessionId}: ${error}`);
@@ -410,13 +544,23 @@ export class DualSessionManager {
     
     for (const [sessionId, session] of this.sessions) {
       const isHealthy = healthStatus.get(sessionId) || false;
-      const pid = await session.terminal.processId;
       
       diagnostics.push(`  • ${session.name} (${sessionId}):`);
+      diagnostics.push(`    - Mode: ${session.mode}`);
       diagnostics.push(`    - Status: ${session.status}`);
       diagnostics.push(`    - Healthy: ${isHealthy ? '✅' : '❌'}`);
-      diagnostics.push(`    - PID: ${pid || 'Unknown'}`);
-      diagnostics.push(`    - Terminal Name: ${session.terminal.name}`);
+      
+      if (session.mode === 'terminal' && session.terminal) {
+        const pid = await session.terminal.processId;
+        diagnostics.push(`    - Terminal PID: ${pid || 'Unknown'}`);
+        diagnostics.push(`    - Terminal Name: ${session.terminal.name}`);
+      } else if (session.mode === 'process' && session.processSession) {
+        diagnostics.push(`    - Process Alive: ${session.processSession.isAlive() ? '✅' : '❌'}`);
+      } else if (session.mode === 'oneshoot' && session.oneShootSession) {
+        diagnostics.push(`    - OneShoot Session ID: ${session.oneShootSession.getClaudeSessionId() || 'Not set'}`);
+        diagnostics.push(`    - OneShoot Alive: ${session.oneShootSession.isAlive() ? '✅' : '❌'}`);
+      }
+      
       diagnostics.push(`    - Messages: ${session.messages.length}`);
       diagnostics.push(`    - Created: ${session.createdAt.toISOString()}`);
       diagnostics.push(`    - Last Active: ${session.lastActiveAt.toISOString()}`);
@@ -441,13 +585,17 @@ export class DualSessionManager {
   }
 
   private async startClaudeCode(session: Session): Promise<void> {
-    const { terminal, id: sessionId } = session;
+    const { id: sessionId } = session;
+    
+    if (!session.terminal) {
+      throw new Error('Terminal not available for session');
+    }
     
     this.outputChannel.appendLine(`Starting Claude Code in session ${sessionId}`);
     
     try {
       // Send claude command with automatic Enter
-      terminal.sendText('claude', true);
+      session.terminal.sendText('claude', true);
       
       // Update status to starting
       session.status = 'starting';
@@ -457,7 +605,7 @@ export class DualSessionManager {
       await new Promise(resolve => setTimeout(resolve, 3000));
       
       // Send additional Enter to ensure Claude is ready (critical for Claude CLI)
-      terminal.sendText('', true);
+      session.terminal.sendText('', true);
       
       // Wait a bit more for Claude to be fully ready
       await new Promise(resolve => setTimeout(resolve, 1000));
@@ -573,6 +721,159 @@ export class DualSessionManager {
     }
   }
 
+  // Process Session Event Handlers
+  private setupProcessEventHandlers(session: Session): void {
+    if (!session.processSession) {
+      return;
+    }
+    
+    session.processSession.onData = (data: string) => {
+      this.handleProcessData(session.id, data);
+    };
+    
+    session.processSession.onExit = (code: number | null, signal: string | null) => {
+      this.handleProcessExit(session.id, code, signal);
+    };
+    
+    session.processSession.onError = (error: Error) => {
+      this.handleProcessError(session.id, error);
+    };
+    
+    session.processSession.onInteractivePrompt = (prompt: string) => {
+      this.handleProcessInteractivePrompt(session.id, prompt);
+    };
+  }
+
+  // OneShoot Session Event Handlers
+  private setupOneShootEventHandlers(session: Session): void {
+    if (!session.oneShootSession) {
+      return;
+    }
+    
+    session.oneShootSession.onData = (data: string) => {
+      this.handleOneShootData(session.id, data);
+    };
+    
+    session.oneShootSession.onExit = (code: number | null, signal: string | null) => {
+      this.handleOneShootExit(session.id, code, signal);
+    };
+    
+    session.oneShootSession.onError = (error: Error) => {
+      this.handleOneShootError(session.id, error);
+    };
+    
+    session.oneShootSession.onInteractivePrompt = (prompt: string) => {
+      this.handleOneShootInteractivePrompt(session.id, prompt);
+    };
+  }
+
+  private handleProcessData(sessionId: string, data: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      this.outputChannel.appendLine(`⚠️ Received process data for unknown session: ${sessionId}`);
+      return;
+    }
+
+    this.outputChannel.appendLine(`📨 Process data for session ${session.name}: ${data.substring(0, 100)}...`);
+
+    // Parse potential Claude response from process data
+    // Similar to handleResponseFromTerminal but for process mode
+    try {
+      // Try to detect Claude response patterns in the data
+      if (this.isClaudeResponse(data)) {
+        const response: Message = {
+          id: this.generateMessageId(),
+          content: data,
+          timestamp: new Date(),
+          type: 'assistant',
+          sessionId: sessionId
+        };
+
+        session.messages.push(response);
+        this.trimMessageHistory(session);
+        session.lastActiveAt = new Date();
+
+        this.fireEvent('messageReceived', sessionId, response);
+      }
+    } catch (error) {
+      this.outputChannel.appendLine(`❌ Error processing data from process session: ${error}`);
+    }
+  }
+
+  private handleProcessExit(sessionId: string, code: number | null, signal: string | null): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    this.outputChannel.appendLine(`💀 Process session exited: ${session.name}, code=${code}, signal=${signal}`);
+    
+    session.status = 'closed';
+    this.fireEvent('sessionStatusChanged', sessionId, 'closed');
+    
+    // Auto-cleanup if this was an unexpected exit
+    if (code !== 0) {
+      this.closeSession(sessionId).catch(console.error);
+    }
+  }
+
+  private handleProcessError(sessionId: string, error: Error): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    this.outputChannel.appendLine(`❌ Process session error: ${session.name}, error=${error.message}`);
+    
+    session.status = 'error';
+    this.fireEvent('sessionStatusChanged', sessionId, 'error');
+  }
+
+  private handleProcessInteractivePrompt(sessionId: string, prompt: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    this.outputChannel.appendLine(`🔄 Process interactive prompt: ${session.name}, prompt=${prompt}`);
+    
+    // Fire interactive input required event
+    if (this.onInteractiveInputRequiredCallback) {
+      this.onInteractiveInputRequiredCallback(sessionId, 'interactive', {}, prompt);
+    }
+  }
+
+  private isClaudeResponse(data: string): boolean {
+    // Simple heuristic to detect Claude responses
+    // This can be enhanced based on Claude's output patterns
+    return data.includes('Claude') || data.length > 50;
+  }
+
+  private async startClaudeCodeInProcess(session: Session): Promise<void> {
+    if (!session.processSession) {
+      throw new Error('Process session not available');
+    }
+
+    this.outputChannel.appendLine(`Claude Code process already started directly in process session ${session.id}`);
+    
+    try {
+      // Update status
+      session.status = 'starting';
+      this.fireEvent('sessionStatusChanged', session.id, 'starting');
+      
+      // Update status to ready immediately as claude starts directly
+      session.status = 'ready';
+      this.fireEvent('sessionStatusChanged', session.id, 'ready');
+      
+      this.outputChannel.appendLine(`Claude Code ready in process session ${session.id}`);
+      
+    } catch (error) {
+      session.status = 'error';
+      this.fireEvent('sessionStatusChanged', session.id, 'error');
+      throw error;
+    }
+  }
+
   // Event registration methods
   onSessionCreated(callback: (session: Session) => void): void {
     this.onSessionCreatedCallback = callback;
@@ -601,6 +902,224 @@ export class DualSessionManager {
   onInteractiveInputRequired(callback: (sessionId: string, command: string, data: any, prompt: string) => void): void {
     this.onInteractiveInputRequiredCallback = callback;
   }
+
+  // OneShoot Session Data Handlers
+  private handleOneShootData(sessionId: string, data: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      this.outputChannel.appendLine(`⚠️ Received OneShoot data for unknown session: ${sessionId}`);
+      return;
+    }
+
+    this.outputChannel.appendLine(`📨 OneShoot data for session ${session.name}: ${data.substring(0, 100)}...`);
+
+    // OneShoot data is handled through sendMessage responses, not streaming
+    // This is mainly for debugging
+  }
+
+  private handleOneShootExit(sessionId: string, code: number | null, signal: string | null): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    this.outputChannel.appendLine(`💀 OneShoot session exited: ${session.name}, code=${code}, signal=${signal}`);
+    
+    // OneShoot processes are expected to exit after each message
+    // This is normal behavior, not an error
+  }
+
+  private handleOneShootError(sessionId: string, error: Error): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    this.outputChannel.appendLine(`❌ OneShoot session error: ${session.name}, error=${error.message}`);
+    
+    session.status = 'error';
+    this.fireEvent('sessionStatusChanged', sessionId, 'error');
+  }
+
+  private handleOneShootInteractivePrompt(sessionId: string, prompt: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    this.outputChannel.appendLine(`🔄 OneShoot interactive prompt: ${session.name}, prompt=${prompt}`);
+    
+    // Fire interactive input required event
+    if (this.onInteractiveInputRequiredCallback) {
+      this.onInteractiveInputRequiredCallback(sessionId, 'interactive', {}, prompt);
+    }
+  }
+
+  private handleOneShootStreamingData(sessionId: string, jsonLine: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    try {
+      const response = JSON.parse(jsonLine) as import('./OneShootProcessSessionManager').ClaudeJsonResponse;
+      this.outputChannel.appendLine(`🔄 Streaming: ${response.type}${response.subtype ? '/' + response.subtype : ''}`);
+      
+      if (response.type === 'assistant' && response.message) {
+        this.processAssistantStreamingMessage(sessionId, response);
+      } else if (response.type === 'result' && response.message) {
+        this.processToolResultStreaming(sessionId, response);
+      }
+      
+    } catch (error) {
+      this.outputChannel.appendLine(`❌ Failed to parse streaming JSON: ${error}`);
+    }
+  }
+
+  private processAssistantStreamingMessage(sessionId: string, response: import('./OneShootProcessSessionManager').ClaudeJsonResponse): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) return;
+
+    if (response.message.content && Array.isArray(response.message.content)) {
+      for (const block of response.message.content) {
+        if (block.type === 'tool_use') {
+          // Complete all running tools before starting a new one
+          this.completeAllRunningTools(sessionId);
+          
+          // Show tool immediately
+          const toolMessage: Message = {
+            id: this.generateMessageId(),
+            content: this.formatToolUse(block),
+            timestamp: new Date(),
+            type: 'tool',
+            sessionId: sessionId,
+            toolInfo: {
+              name: block.name,
+              input: block.input,
+              status: 'running',
+              startTime: new Date()
+            }
+          };
+          
+          // Store for later result matching
+          if (!session.pendingTools) {
+            session.pendingTools = new Map();
+          }
+          session.pendingTools.set(block.id, toolMessage);
+          
+          session.messages.push(toolMessage);
+          this.fireEvent('messageReceived', sessionId, toolMessage);
+          this.outputChannel.appendLine(`🔧 Tool started: ${block.name}`);
+          
+        } else if (block.type === 'text' && block.text?.trim()) {
+          // Complete all running tools before showing text
+          this.completeAllRunningTools(sessionId);
+          
+          // Show text immediately (no delay needed in streaming)
+          const textMessage: Message = {
+            id: this.generateMessageId(),
+            content: block.text.trim(),
+            timestamp: new Date(),
+            type: 'assistant',
+            sessionId: sessionId
+          };
+          
+          session.messages.push(textMessage);
+          this.fireEvent('messageReceived', sessionId, textMessage);
+          this.outputChannel.appendLine(`💬 Assistant text received`);
+        }
+      }
+    }
+  }
+
+  private processToolResultStreaming(sessionId: string, response: import('./OneShootProcessSessionManager').ClaudeJsonResponse): void {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.pendingTools) return;
+
+    const toolId = response.message.tool_use_id;
+    const toolMessage = session.pendingTools.get(toolId);
+    
+    if (toolMessage && toolMessage.toolInfo) {
+      toolMessage.toolInfo.status = response.message.is_error ? 'error' : 'completed';
+      toolMessage.toolInfo.result = this.formatToolResult(response.message);
+      toolMessage.toolInfo.endTime = new Date();
+      
+      // Update UI immediately
+      this.fireEvent('messageReceived', sessionId, toolMessage);
+      
+      // Remove from pending
+      session.pendingTools.delete(toolId);
+      
+      this.outputChannel.appendLine(`✅ Tool completed: ${toolMessage.toolInfo.name}`);
+    }
+  }
+
+
+  private completeAllRunningTools(sessionId: string): void {
+    const session = this.sessions.get(sessionId);
+    if (!session || !session.pendingTools) return;
+    
+    // Complete all running tools
+    for (const [toolId, toolMessage] of session.pendingTools) {
+      if (toolMessage.toolInfo?.status === 'running') {
+        // Update status to completed
+        toolMessage.toolInfo.status = 'completed';
+        toolMessage.toolInfo.endTime = new Date();
+        
+        // Send update to webview
+        this.fireEvent('messageReceived', sessionId, toolMessage);
+        this.outputChannel.appendLine(`✅ Auto-completed tool: ${toolMessage.toolInfo.name}`);
+        
+        // Remove from pendingTools
+        session.pendingTools.delete(toolId);
+      }
+    }
+  }
+
+  private formatToolUse(toolBlock: any): string {
+    const params = Object.entries(toolBlock.input || {})
+      .map(([key, value]) => {
+        const valueStr = String(value);
+        // Truncate very long values and add line breaks for readability
+        if (valueStr.length > 80) {
+          return `${key}: "${valueStr.substring(0, 80)}..."`;
+        }
+        return `${key}: "${value}"`;
+      });
+    
+    // If parameters are too long, format with line breaks
+    const paramStr = params.join(', ');
+    if (paramStr.length > 100) {
+      return `${toolBlock.name}(\n  ${params.join(',\n  ')}\n)`;
+    }
+    
+    return `${toolBlock.name}(${paramStr})`;
+  }
+
+  private formatToolResult(resultMessage: any): string {
+    if (resultMessage.is_error) {
+      return `Error: ${resultMessage.content || 'Unknown error'}`;
+    }
+    
+    if (resultMessage.content) {
+      // Format output based on tool type
+      const content = resultMessage.content;
+      
+      // For file lists, format as lines
+      if (typeof content === 'string') {
+        const lines = content.split('\n').filter(line => line.trim());
+        if (lines.length > 10) {
+          return lines.slice(0, 10).join('\n') + `\n... +${lines.length - 10} lines (ctrl+r to expand)`;
+        }
+        return content;
+      }
+      
+      return JSON.stringify(content, null, 2);
+    }
+    
+    return 'Completed';
+  }
+
 
   // Cleanup
   dispose(): void {

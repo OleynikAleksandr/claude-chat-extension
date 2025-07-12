@@ -2,7 +2,7 @@
   "name": "claude-chat",
   "displayName": "Claude Chat",
   "description": "Enhanced VS Code extension for bidirectional real-time communication with Claude Code CLI featuring live service information monitoring",
-  "version": "0.10.46",
+  "version": "0.10.77",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -195,5 +195,8 @@
     "vsce": "^2.15.0",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1"
+  },
+  "dependencies": {
+    "node-pty": "^1.0.0"
   }
 }
