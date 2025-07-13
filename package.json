@@ -2,7 +2,7 @@
   "name": "claude-chat",
   "displayName": "Claude Chat",
   "description": "Enhanced VS Code extension for bidirectional real-time communication with Claude Code CLI featuring live service information monitoring",
-  "version": "0.10.77",
+  "version": "0.11.10",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -34,12 +34,6 @@
   },
   "categories": [
     "Other"
-  ],
-  "activationEvents": [
-    "onCommand:claudeChat.openChat",
-    "onView:claudeChatView",
-    "onCommand:claudeChat.openMultiSession",
-    "onView:claudeChatMultiSessionView"
   ],
   "main": "./out/extension.js",
   "contributes": {
@@ -120,7 +114,8 @@
           "type": "webview",
           "id": "claudeChatMultiSessionView",
           "name": "Claude Chat",
-          "when": ""
+          "icon": "media/icons/claude-chat.svg",
+          "when": "true"
         }
       ]
     },
@@ -192,7 +187,6 @@
     "style-loader": "^4.0.0",
     "ts-loader": "^9.5.2",
     "typescript": "^5.3.3",
-    "vsce": "^2.15.0",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1"
   },

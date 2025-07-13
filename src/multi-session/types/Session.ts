@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import { ProcessSessionManager } from '../managers/ProcessSessionManager';
 import { OneShootProcessSessionManager } from '../managers/OneShootProcessSessionManager';
+import { SessionInfo } from '../utils/SessionReader';
 
 export type SessionMode = 'terminal' | 'process' | 'oneshoot';
 
@@ -96,6 +97,7 @@ export interface SessionConfig {
 export type WebviewMessage = 
   | { command: 'createSession'; name?: string; mode?: SessionMode }
   | { command: 'createOneShootSession'; name?: string }
+  | { command: 'createOneShootSessionWithResume'; name?: string; resumeSessionId: string }
   | { command: 'switchSession'; sessionId: string }
   | { command: 'closeSession'; sessionId: string }
   | { command: 'sendMessage'; sessionId: string; message: string }
@@ -103,7 +105,8 @@ export type WebviewMessage =
   | { command: 'renameSession'; sessionId: string; newName: string }
   | { command: 'getSessionState' }
   | { command: 'healthCheck' }
-  | { command: 'interactiveResponse'; sessionId: string; interactiveCommand: string; selection: string | number; metadata?: any };
+  | { command: 'interactiveResponse'; sessionId: string; interactiveCommand: string; selection: string | number; metadata?: any }
+  | { command: 'getAvailableSessions' };
 
 export type ExtensionMessage = 
   | { command: 'sessionsUpdated'; sessions: Omit<Session, 'terminal' | 'processSession'>[] }
@@ -114,6 +117,7 @@ export type ExtensionMessage =
   | { command: 'messageResponse'; sessionId: string; success: boolean; response?: Message; error?: string }
   | { command: 'healthCheckResult'; healthStatus: [string, boolean][] }
   | { command: 'serviceInfoReceived'; sessionId: string; serviceInfo: ServiceMessage }
+  | { command: 'availableSessionsResult'; success: boolean; sessions?: SessionInfo[]; error?: string }
   | { command: 'interactiveInputRequired'; sessionId: string; interactiveCommand: string; data: any; prompt: string }
   | { command: 'error'; message: string; sessionId?: string };
 

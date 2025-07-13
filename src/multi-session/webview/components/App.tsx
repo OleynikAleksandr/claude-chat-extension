@@ -26,7 +26,9 @@ export const App: React.FC = () => {
     executeSlashCommand,
     refreshState,
     onServiceInfoUpdate,
-    sendInteractiveResponse
+    sendInteractiveResponse,
+    getAvailableSessions,
+    createOneShootSessionWithResume
   } = useVSCodeAPI();
   
   // State for interactive commands
@@ -36,7 +38,8 @@ export const App: React.FC = () => {
     data: any;
     prompt: string;
   } | null>(null);
-
+  
+  
   const activeSession = sessions.find(session => session.id === activeSessionId) || null;
   const canCreateNewSession = sessions.length < 2;
 
@@ -67,14 +70,66 @@ export const App: React.FC = () => {
     sendMessage(sessionId, message);
   }, [sendMessage]);
 
-  const handleExecuteSlashCommand = useCallback((sessionId: string, slashCommand: string) => {
+  const handleExecuteSlashCommand = useCallback(async (sessionId: string, slashCommand: string) => {
+    // Special handling for /resume command in OneShoot sessions
+    if (slashCommand === '/resume') {
+      const activeSession = sessions.find(s => s.id === sessionId);
+      if (activeSession?.mode === 'oneshoot') {
+        try {
+          // Get available sessions
+          const availableSessions = await getAvailableSessions();
+          
+          if (availableSessions.length === 0) {
+            // Show message if no sessions found
+            setInteractiveCommand({
+              sessionId: sessionId,
+              command: '/resume',
+              data: { sessions: [] },
+              prompt: 'No previous sessions found'
+            });
+          } else {
+            // Show session picker
+            setInteractiveCommand({
+              sessionId: sessionId,
+              command: '/resume',
+              data: { sessions: availableSessions },
+              prompt: 'Select a session to resume:'
+            });
+          }
+        } catch (error) {
+          console.error('Failed to get available sessions:', error);
+        }
+        return;
+      }
+    }
+    
+    // Default handling for other commands
     executeSlashCommand(sessionId, slashCommand);
-  }, [executeSlashCommand]);
-
+  }, [executeSlashCommand, sessions, getAvailableSessions]);
+  
   // Handle interactive command response
   const handleInteractiveSelect = useCallback((selection: string) => {
     if (!interactiveCommand) return;
     
+    // Special handling for /resume command
+    if (interactiveCommand.command === '/resume') {
+      const availableSessions = interactiveCommand.data.sessions || [];
+      const selectedSessionInfo = availableSessions.find((s: any) => s.id === selection);
+      
+      if (selectedSessionInfo) {
+        // Create new OneShoot session with --resume parameter
+        console.log('Creating OneShoot session with resume:', selectedSessionInfo.sessionId);
+        createOneShootSessionWithResume(
+          selectedSessionInfo.sessionId,
+          `Resume: ${selectedSessionInfo.description || selectedSessionInfo.date}`
+        );
+      }
+      
+      setInteractiveCommand(null);
+      return;
+    }
+    
+    // Default handling for other interactive commands
     sendInteractiveResponse(
       interactiveCommand.sessionId,
       interactiveCommand.command,
@@ -82,7 +137,7 @@ export const App: React.FC = () => {
     );
     
     setInteractiveCommand(null);
-  }, [interactiveCommand, sendInteractiveResponse]);
+  }, [interactiveCommand, sendInteractiveResponse, createOneShootSessionWithResume]);
 
   const handleInteractiveCancel = useCallback(() => {
     setInteractiveCommand(null);
@@ -132,7 +187,7 @@ export const App: React.FC = () => {
         onCloseSession={handleCloseSession}
         canCreateNewSession={canCreateNewSession}
         isLoading={isLoading}
-        cacheReadTokens={activeServiceInfo?.usage.cache_read_input_tokens || 0}
+        cacheReadTokens={(activeServiceInfo?.usage.cache_creation_input_tokens || 0) + (activeServiceInfo?.usage.cache_read_input_tokens || 0)}
       />
       
       <ChatWindow

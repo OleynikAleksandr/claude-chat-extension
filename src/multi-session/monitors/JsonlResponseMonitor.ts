@@ -387,8 +387,8 @@ export class JsonlResponseMonitor {
                 return null;
             }
 
-            // Извлекаем tool_use операции с валидацией
-            const toolUseItems: ToolUseItem[] = entry.message.content
+            // 🔧 НОВАЯ ЛОГИКА: Извлекаем только ПОСЛЕДНИЙ tool_use инструмент
+            const allToolUseItems = entry.message.content
                 .filter(item => item.type === 'tool_use')
                 .map(item => {
                     // Валидируем обязательные поля
@@ -409,6 +409,11 @@ export class JsonlResponseMonitor {
                 })
                 .filter(item => item !== null) as ToolUseItem[];
 
+            // ⚡ КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Берем только последний инструмент
+            const toolUseItems: ToolUseItem[] = allToolUseItems.length > 0 
+                ? [allToolUseItems[allToolUseItems.length - 1]] 
+                : [];
+
             // Извлекаем thinking процесс с валидацией
             const thinkingContent = entry.message.content
                 .filter(item => item.type === 'thinking' && item.text && typeof item.text === 'string')
@@ -417,16 +422,15 @@ export class JsonlResponseMonitor {
                 .trim();
 
             // Извлекаем usage информацию с валидацией
-            // 🎯 КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ: Контекстное окно = cache_creation + cache_read
+            // 🎯 ИСПРАВЛЕНО: Передаем ОРИГИНАЛЬНЫЕ значения из JSON, суммирование будет в UI
             const cacheCreationTokens = this.validateTokenCount(entry.message.usage?.cache_creation_input_tokens);
             const cacheReadTokens = this.validateTokenCount(entry.message.usage?.cache_read_input_tokens);
-            const totalContextTokens = cacheCreationTokens + cacheReadTokens;
 
             const usage: UsageInfo = {
                 input_tokens: this.validateTokenCount(entry.message.usage?.input_tokens),
                 output_tokens: this.validateTokenCount(entry.message.usage?.output_tokens),
                 cache_creation_input_tokens: cacheCreationTokens,
-                cache_read_input_tokens: totalContextTokens, // Теперь это полный контекст!
+                cache_read_input_tokens: cacheReadTokens, // 🎯 ИСПРАВЛЕНО: оригинальное значение из JSON
                 service_tier: this.validateServiceTier(entry.message.usage?.service_tier)
             };
 

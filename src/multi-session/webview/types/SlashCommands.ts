@@ -15,7 +15,7 @@ export interface SlashCommand {
   /** Optional keyboard shortcut */
   shortcut?: string;
   /** Handler function called when command is executed */
-  handler: (args?: string) => void;
+  handler: (callback?: () => void) => void;
 }
 
 export interface CommandPaletteState {

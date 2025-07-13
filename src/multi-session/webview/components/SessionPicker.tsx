@@ -108,6 +108,9 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({
             <span className="session-number">{session.id}.</span>
             <span className="session-date">{session.date}</span>
             <span className="session-time">{session.time}</span>
+            {session.formattedSize && (
+              <span className="session-size">({session.formattedSize})</span>
+            )}
             {session.description && (
               <span className="session-description">- {session.description}</span>
             )}

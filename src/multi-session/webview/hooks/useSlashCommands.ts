@@ -174,7 +174,11 @@ const DEFAULT_COMMANDS: SlashCommand[] = [
     description: 'Resume a conversation',
     category: 'claude-code',
     icon: '▶️',
-    handler: () => {}
+    handler: (onResumeRequested?: () => void) => {
+      if (onResumeRequested) {
+        onResumeRequested();
+      }
+    }
   },
   {
     name: '/review',

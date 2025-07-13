@@ -40,28 +40,9 @@ const MessageItem: React.FC<MessageItemProps & { isLastToolBeforeAssistant?: boo
     }).format(new Date(date));
   };
 
-  // Handle tool message display
+  // Skip tool message display - moved to footer
   if (message.type === 'tool' && message.toolInfo) {
-    // Override status to 'completed' if this is the last tool before an assistant message
-    const displayStatus = isLastToolBeforeAssistant ? 'completed' : message.toolInfo.status;
-    
-    return (
-      <div className={`message-item tool-message ${displayStatus}`}>
-        <div className="tool-header">
-          <div className="tool-indicator">
-            <span className={`tool-dot ${displayStatus}`}>●</span>
-            <span className="tool-name">{message.content}</span>
-          </div>
-          <span className="message-time">{formatTime(message.timestamp)}</span>
-        </div>
-        {message.toolInfo.result && (
-          <div className="tool-result">
-            <span className="result-prefix">└ </span>
-            <span className="result-content">{message.toolInfo.result}</span>
-          </div>
-        )}
-      </div>
-    );
+    return null;
   }
 
   return (
@@ -270,6 +251,63 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // 🎨 Извлечение текущего активного инструмента из сообщений
+  const getCurrentTool = (): { name: string; params: string } | undefined => {
+    // 🐛 ОТЛАДКА: логируем состояние для диагностики
+    console.log('🎨 getCurrentTool called:', {
+      hasSession: !!session,
+      hasMessages: !!session?.messages,
+      messagesCount: session?.messages?.length || 0,
+      hasActiveServiceInfo: !!activeServiceInfo,
+      serviceInfoStatus: activeServiceInfo?.status,
+      toolUseCount: activeServiceInfo?.toolUse?.length || 0
+    });
+    
+    if (!session?.messages) {
+      console.log('🐛 getCurrentTool returns undefined - no session messages');
+      return undefined;
+    }
+    
+    // Ищем последний tool message со статусом 'running'
+    for (let i = session.messages.length - 1; i >= 0; i--) {
+      const message = session.messages[i];
+      if (message.type === 'tool' && message.toolInfo && message.toolInfo.status === 'running') {
+        console.log('🎨 Found running tool:', message.toolInfo.name, 'status:', message.toolInfo.status);
+        // Извлекаем первый значимый параметр из content
+        const toolName = message.toolInfo.name;
+        let params = '';
+        
+        // Парсим параметры из content
+        const content = message.content;
+        if (content.includes('(') && content.includes(')')) {
+          const paramsPart = content.substring(content.indexOf('(') + 1, content.lastIndexOf(')'));
+          
+          // Ищем file_path, path, pattern или другие ключевые параметры
+          const filePathMatch = paramsPart.match(/file_path:\s*"([^"]+)"/);
+          const pathMatch = paramsPart.match(/path:\s*"([^"]+)"/);
+          const patternMatch = paramsPart.match(/pattern:\s*"([^"]+)"/);
+          const commandMatch = paramsPart.match(/command:\s*"([^"]+)"/);
+          
+          if (filePathMatch) {
+            params = filePathMatch[1];
+          } else if (pathMatch) {
+            params = pathMatch[1];
+          } else if (patternMatch) {
+            params = patternMatch[1];
+          } else if (commandMatch) {
+            params = commandMatch[1];
+          }
+        }
+        
+        const result = { name: toolName, params };
+        console.log('🎨 getCurrentTool found tool:', result);
+        return result;
+      }
+    }
+    console.log('🐛 getCurrentTool: no tool messages found');
+    return undefined;
+  };
+
   // Track activeServiceInfo changes for UI updates
   useEffect(() => {
     // ServiceInfo changes will trigger re-render
@@ -334,15 +372,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 }
               }
               
+              const messageComponent = (
+                <MessageItem 
+                  message={message} 
+                  isLastToolBeforeAssistant={isLastToolBeforeAssistant}
+                />
+              );
+              
+              // Skip null components (hidden tool messages)
+              if (!messageComponent) {
+                return null;
+              }
+              
               return (
                 <div key={message.id} className="message-group">
-                  <MessageItem 
-                    message={message} 
-                    isLastToolBeforeAssistant={isLastToolBeforeAssistant}
-                  />
+                  {messageComponent}
                 </div>
               );
-            })}
+            }).filter(Boolean)}
             <div ref={messagesEndRef} />
           </div>
         )}
@@ -354,6 +401,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           key={`${activeServiceInfo.timestamp}-${activeServiceInfo.status}`}
           serviceInfo={activeServiceInfo}
           onUpdate={onServiceInfoUpdate}
+          currentTool={getCurrentTool()}
         />
       )}
 

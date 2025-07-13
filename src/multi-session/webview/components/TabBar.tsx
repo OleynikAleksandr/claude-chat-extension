@@ -132,12 +132,16 @@ export const TabBar: React.FC<TabBarProps> = ({
       {/* Context Progress Bar - показывать для активной сессии */}
       {activeSessionId && (() => {
         const activeSession = sessions.find(session => session.id === activeSessionId);
+        
         return (
-          <ContextProgressBar 
-            cacheReadTokens={cacheReadTokens}
-            className="tab-context-indicator"
-            messageCount={activeSession?.messages.length || 0}
-          />
+          <div className="session-indicators">
+            {/* Context Progress Bar */}
+            <ContextProgressBar 
+              cacheReadTokens={cacheReadTokens}
+              className="tab-context-indicator"
+              messageCount={activeSession?.messages.length || 0}
+            />
+          </div>
         );
       })()}
     </div>

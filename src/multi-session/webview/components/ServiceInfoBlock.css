@@ -350,18 +350,61 @@
   left: 0;
   right: 0;
   background: var(--vscode-input-background);
-  border-top: 1px solid var(--vscode-panel-border);
+  border-top: 2px solid var(--vscode-descriptionForeground);
   z-index: 100;
   font-family: var(--vscode-font-family);
+  transition: all 0.3s ease;
 }
 
 .compact-status-bar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 2px 8px;
+  gap: 8px;
+  padding: 4px 12px;
   font-size: 9px;
-  min-height: 16px;
+  min-height: 20px;
+}
+
+/* 🎨 Улучшенная точка состояния с яркой анимацией */
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid var(--vscode-descriptionForeground);
+  background: transparent;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+.status-dot.active {
+  border-color: var(--vscode-terminal-ansiBlue);
+  animation: dot-bright-pulse 1.5s infinite;
+}
+
+.status-dot.idle {
+  border-color: var(--vscode-terminal-ansiGreen);
+  background: rgba(0, 255, 0, 0.1);
+}
+
+@keyframes dot-bright-pulse {
+  0% { 
+    border-color: var(--vscode-terminal-ansiBlue);
+    background: transparent;
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  50% { 
+    border-color: var(--vscode-terminal-ansiCyan);
+    background: rgba(0, 200, 255, 0.3);
+    transform: scale(1.4);
+    opacity: 1;
+  }
+  100% { 
+    border-color: var(--vscode-terminal-ansiBlue);
+    background: transparent;
+    transform: scale(1);
+    opacity: 0.6;
+  }
 }
 
 
@@ -369,12 +412,22 @@
 .tool-name {
   color: var(--vscode-foreground);
   font-weight: 500;
-  font-size: 11px;
+  font-size: 12px;
   flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  opacity: 0;
+  transform: translateY(-2px);
+  animation: tool-fade-in 0.3s ease-out forwards;
+}
+
+@keyframes tool-fade-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Статусный текст */
@@ -383,6 +436,8 @@
   font-weight: 500;
   flex-shrink: 0;
   padding-left: 4px;
+  transition: all 0.3s ease;
+  text-transform: capitalize;
 }
 
 .status-text.status-processing {
@@ -392,6 +447,11 @@
 
 .status-text.status-completed {
   color: var(--vscode-terminal-ansiGreen);
+}
+
+.status-text.status-ready {
+  color: var(--vscode-terminal-ansiGreen);
+  font-style: italic;
 }
 
 .status-text.status-error {

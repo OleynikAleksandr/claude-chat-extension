@@ -8,21 +8,21 @@ import './ContextProgressBar.css';
 
 interface ContextProgressBarProps {
   cacheReadTokens: number;
-  maxTokens?: number; // Default: 160k (effective Claude Code limit)
+  maxTokens?: number; // Default: 155k (effective Claude Code limit)
   className?: string;
   messageCount?: number; // Количество сообщений в сессии
 }
 
 export const ContextProgressBar: React.FC<ContextProgressBarProps> = ({
   cacheReadTokens,
-  maxTokens = 160000, // 160k effective limit
+  maxTokens = 155000, // 155k effective limit (по результатам тестирования)
   className = '',
   messageCount = 0
 }) => {
   // Calculate percentage
   const percentage = Math.min((cacheReadTokens / maxTokens) * 100, 100);
   
-  // 80% mark position (128k tokens at 160k max)
+  // 80% mark position (124k tokens at 155k max)
   const warningMarkPosition = 80;
   
   // Color logic based on percentage

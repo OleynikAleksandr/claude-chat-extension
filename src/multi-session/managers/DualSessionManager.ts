@@ -20,6 +20,8 @@ export class DualSessionManager {
   private sessionMonitoringStatus: Map<string, boolean> = new Map(); // Отслеживание статуса мониторинга
   private interactiveCommandManager: InteractiveCommandManager;
   private processSessionFactory: typeof ProcessSessionFactory;
+  // 🔧 Terminal visibility state
+  private showTerminal: boolean = false;
   
   // Event callbacks
   private onSessionCreatedCallback?: (session: Session) => void;
@@ -59,7 +61,7 @@ export class DualSessionManager {
   }
 
   // Core Session Management
-  async createSession(name?: string, mode: SessionMode = 'terminal'): Promise<Session> {
+  async createSession(name?: string, mode: SessionMode = 'terminal', options?: { resumeSessionId?: string }): Promise<Session> {
     if (this.sessions.size >= this.maxSessions) {
       throw new Error(`Maximum ${this.maxSessions} sessions allowed`);
     }
@@ -129,7 +131,9 @@ export class DualSessionManager {
           sessionId: sessionId,
           sessionName: sessionName,
           workingDirectory: workingDirectory,
-          outputChannel: this.outputChannel
+          outputChannel: this.outputChannel,
+          showTerminal: this.showTerminal,
+          resumeSessionId: options?.resumeSessionId
         });
         
         session.oneShootSession = oneShootSession;
@@ -338,6 +342,9 @@ export class DualSessionManager {
         await session.oneShootSession.sendMessage(message);
         this.outputChannel.appendLine(`✅ OneShoot message completed for session: ${session.name}`);
         
+        // 🎯 ИСПРАВЛЕНИЕ: Завершить все оставшиеся активные инструменты после завершения OneShoot
+        this.completeAllPendingToolsForOneShoot(sessionId);
+        
       } catch (error) {
         this.outputChannel.appendLine(`❌ OneShoot sendMessage error: ${error}`);
         // Error is already logged, OneShoot errors are handled internally
@@ -439,11 +446,18 @@ export class DualSessionManager {
   /**
    * **ПОТОК 2: Terminal → Extension**
    * Обработка ответов, полученных от Claude Code через JSONL мониторинг
+   * ⚠️ ТОЛЬКО для терминальных и процессных сессий, НЕ для OneShoot
    */
   private handleResponseFromTerminal(sessionId: string, response: Message): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
       this.outputChannel.appendLine(`⚠️ Received response for unknown session: ${sessionId}`);
+      return;
+    }
+
+    // 🎯 ИСПРАВЛЕНИЕ: Игнорируем OneShoot сессии для предотвращения дублирования
+    if (session.mode === 'oneshoot') {
+      this.outputChannel.appendLine(`🚫 Ignoring terminal response for OneShoot session: ${session.name} (processed directly)`);
       return;
     }
 
@@ -464,11 +478,18 @@ export class DualSessionManager {
 
   /**
    * 🔧 Обработка служебной информации от Claude Code через JSONL мониторинг
+   * ⚠️ ТОЛЬКО для терминальных и процессных сессий, НЕ для OneShoot
    */
   private handleServiceInfoFromTerminal(sessionId: string, serviceInfo: ServiceMessage): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
       this.outputChannel.appendLine(`⚠️ Received service info for unknown session: ${sessionId}`);
+      return;
+    }
+
+    // 🎯 ИСПРАВЛЕНИЕ: Игнорируем OneShoot сессии для предотвращения конфликта данных
+    if (session.mode === 'oneshoot') {
+      this.outputChannel.appendLine(`🚫 Ignoring terminal service info for OneShoot session: ${session.name} (processed directly)`);
       return;
     }
 
@@ -937,6 +958,29 @@ export class DualSessionManager {
 
     this.outputChannel.appendLine(`❌ OneShoot session error: ${session.name}, error=${error.message}`);
     
+    // 🚫 Special handling for context limit errors
+    if (error.name === 'ContextLimitError') {
+      // Send user-friendly message instead of generic error
+      this.outputChannel.appendLine(`🚫 Context limit reached - sending user-friendly message`);
+      
+      const contextLimitMessage: Message = {
+        id: this.generateMessageId(),
+        content: error.message,
+        timestamp: new Date(),
+        type: 'assistant',
+        sessionId: sessionId
+      };
+      
+      // Add message to session and notify UI
+      session.messages.push(contextLimitMessage);
+      this.fireEvent('messageReceived', sessionId, contextLimitMessage);
+      
+      // Set session to ready state instead of error
+      session.status = 'ready';
+      this.fireEvent('sessionStatusChanged', sessionId, 'ready');
+      return;
+    }
+    
     session.status = 'error';
     this.fireEvent('sessionStatusChanged', sessionId, 'error');
   }
@@ -965,10 +1009,18 @@ export class DualSessionManager {
       const response = JSON.parse(jsonLine) as import('./OneShootProcessSessionManager').ClaudeJsonResponse;
       this.outputChannel.appendLine(`🔄 Streaming: ${response.type}${response.subtype ? '/' + response.subtype : ''}`);
       
+      
       if (response.type === 'assistant' && response.message) {
         this.processAssistantStreamingMessage(sessionId, response);
       } else if (response.type === 'result' && response.message) {
         this.processToolResultStreaming(sessionId, response);
+      }
+      
+      // 🎯 ИСПРАВЛЕНИЕ: Обработка usage данных для индикатора токенов OneShoot режима
+      // Usage всегда находится внутри message для assistant сообщений
+      if (response.type === 'assistant' && response.message && response.message.usage) {
+        this.outputChannel.appendLine(`📊 Usage data found in message: ${JSON.stringify(response.message.usage)}`);
+        this.handleOneShootUsageData(sessionId, response.message.usage);
       }
       
     } catch (error) {
@@ -976,15 +1028,66 @@ export class DualSessionManager {
     }
   }
 
+  /**
+   * 🎯 ИСПРАВЛЕНИЕ: Обработка usage данных для OneShoot режима
+   * Аналогично логике в JsonlResponseMonitor.ts
+   */
+  private handleOneShootUsageData(sessionId: string, usage: any): void {
+    const session = this.sessions.get(sessionId);
+    if (!session) {
+      return;
+    }
+
+    // Валидация токенов
+    const validateTokenCount = (value: any): number => {
+      return (typeof value === 'number' && !isNaN(value)) ? value : 0;
+    };
+
+    // 🎯 ИСПРАВЛЕНО: Передаем ОРИГИНАЛЬНЫЕ значения из Claude API, суммирование будет в UI
+    const cacheCreationTokens = validateTokenCount(usage.cache_creation_input_tokens);
+    const cacheReadTokens = validateTokenCount(usage.cache_read_input_tokens);
+    const inputTokens = validateTokenCount(usage.input_tokens);
+    const outputTokens = validateTokenCount(usage.output_tokens);
+
+    // 🔧 ВАЖНО: Игнорируем записи с нулевыми токенами (промежуточные записи)
+    if (cacheReadTokens === 0 && cacheCreationTokens === 0 && outputTokens === 0) {
+      this.outputChannel.appendLine(`🔧 Skipping zero-token usage data`);
+      return;
+    }
+
+    // Создаем ServiceMessage с usage данными
+    const serviceMessage: import('../types/Session').ServiceMessage = {
+      id: this.generateMessageId(),
+      type: 'service',
+      sessionId: sessionId,
+      timestamp: new Date(),
+      toolUse: [], // Для usage данных инструменты не важны
+      thinking: '',
+      status: 'completed',
+      usage: {
+        input_tokens: inputTokens,
+        output_tokens: outputTokens,
+        cache_creation_input_tokens: cacheCreationTokens,
+        cache_read_input_tokens: cacheReadTokens, // 🎯 ИСПРАВЛЕНО: оригинальное значение из Claude API
+        service_tier: usage.service_tier || 'unknown'
+      }
+    };
+
+    this.outputChannel.appendLine(`🔧 OneShoot usage data: ${cacheCreationTokens} creation + ${cacheReadTokens} read tokens (input: ${inputTokens}, output: ${outputTokens})`);
+
+    // Fire event для служебной информации (аналогично терминальному режиму)
+    this.fireEvent('serviceInfoReceived', sessionId, serviceMessage);
+  }
+
   private processAssistantStreamingMessage(sessionId: string, response: import('./OneShootProcessSessionManager').ClaudeJsonResponse): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
 
-    if (response.message.content && Array.isArray(response.message.content)) {
+    if (response.message && response.message.content && Array.isArray(response.message.content)) {
       for (const block of response.message.content) {
         if (block.type === 'tool_use') {
-          // Complete all running tools before starting a new one
-          this.completeAllRunningTools(sessionId);
+          // DON'T auto-complete running tools - let them run naturally
+          // this.completeAllRunningTools(sessionId); // REMOVED - this caused instant completion
           
           // Show tool immediately
           const toolMessage: Message = {
@@ -1012,8 +1115,8 @@ export class DualSessionManager {
           this.outputChannel.appendLine(`🔧 Tool started: ${block.name}`);
           
         } else if (block.type === 'text' && block.text?.trim()) {
-          // Complete all running tools before showing text
-          this.completeAllRunningTools(sessionId);
+          // DON'T auto-complete running tools - let them run naturally
+          // this.completeAllRunningTools(sessionId); // REMOVED - this caused instant completion
           
           // Show text immediately (no delay needed in streaming)
           const textMessage: Message = {
@@ -1034,14 +1137,14 @@ export class DualSessionManager {
 
   private processToolResultStreaming(sessionId: string, response: import('./OneShootProcessSessionManager').ClaudeJsonResponse): void {
     const session = this.sessions.get(sessionId);
-    if (!session || !session.pendingTools) return;
+    if (!session || !session.pendingTools || !response.message) return;
 
-    const toolId = response.message.tool_use_id;
+    const toolId = (response.message as any).tool_use_id;
     const toolMessage = session.pendingTools.get(toolId);
     
     if (toolMessage && toolMessage.toolInfo) {
-      toolMessage.toolInfo.status = response.message.is_error ? 'error' : 'completed';
-      toolMessage.toolInfo.result = this.formatToolResult(response.message);
+      toolMessage.toolInfo.status = (response.message as any).is_error ? 'error' : 'completed';
+      toolMessage.toolInfo.result = this.formatToolResult(response.message as any);
       toolMessage.toolInfo.endTime = new Date();
       
       // Update UI immediately
@@ -1055,25 +1158,69 @@ export class DualSessionManager {
   }
 
 
-  private completeAllRunningTools(sessionId: string): void {
+  // REMOVED: completeAllRunningTools function - caused instant tool completion
+  // Tools now complete naturally when they receive actual results
+
+  /**
+   * 🎯 ИСПРАВЛЕНИЕ: Завершает все активные инструменты после завершения OneShoot сессии
+   * Это специальная функция только для OneShoot режима - вызывается в конце сессии
+   */
+  private completeAllPendingToolsForOneShoot(sessionId: string): void {
     const session = this.sessions.get(sessionId);
-    if (!session || !session.pendingTools) return;
     
-    // Complete all running tools
-    for (const [toolId, toolMessage] of session.pendingTools) {
-      if (toolMessage.toolInfo?.status === 'running') {
-        // Update status to completed
+    this.outputChannel.appendLine(`🔍 DEBUG: completeAllPendingToolsForOneShoot called for session ${sessionId}`);
+    this.outputChannel.appendLine(`🔍 DEBUG: session exists: ${!!session}`);
+    this.outputChannel.appendLine(`🔍 DEBUG: session.pendingTools exists: ${!!session?.pendingTools}`);
+    this.outputChannel.appendLine(`🔍 DEBUG: pendingTools size: ${session?.pendingTools?.size || 0}`);
+    
+    if (!session || !session.pendingTools) {
+      this.outputChannel.appendLine(`⚠️ No session or pendingTools found for ${sessionId}`);
+      return;
+    }
+
+    this.outputChannel.appendLine(`🔄 OneShoot completed: Finishing ${session.pendingTools.size} remaining tools`);
+    
+    // Собираем все инструменты в массив для безопасной итерации
+    const toolsToComplete = Array.from(session.pendingTools.entries());
+    
+    // Завершаем все оставшиеся инструменты
+    for (const [toolId, toolMessage] of toolsToComplete) {
+      this.outputChannel.appendLine(`🔍 DEBUG: Processing tool ${toolId}, status: ${toolMessage.toolInfo?.status}`);
+      
+      if (toolMessage.toolInfo && toolMessage.toolInfo.status === 'running') {
         toolMessage.toolInfo.status = 'completed';
         toolMessage.toolInfo.endTime = new Date();
+        toolMessage.toolInfo.result = 'Tool completed with OneShoot session';
         
-        // Send update to webview
+        // Обновляем UI - добавляем в основной массив сообщений
+        const messageIndex = session.messages.findIndex(msg => 
+          msg.id === toolMessage.id
+        );
+        
+        if (messageIndex !== -1) {
+          session.messages[messageIndex] = toolMessage;
+          this.outputChannel.appendLine(`✅ Updated message in session.messages for tool: ${toolMessage.toolInfo.name}`);
+        }
+        
+        // Обновляем UI
         this.fireEvent('messageReceived', sessionId, toolMessage);
-        this.outputChannel.appendLine(`✅ Auto-completed tool: ${toolMessage.toolInfo.name}`);
         
-        // Remove from pendingTools
+        // Удаляем из pending сразу после обновления UI
         session.pendingTools.delete(toolId);
+        
+        this.outputChannel.appendLine(`✅ Force-completed and removed tool: ${toolMessage.toolInfo.name}`);
+      } else {
+        // Если инструмент не running, всё равно удаляем из pending
+        session.pendingTools.delete(toolId);
+        this.outputChannel.appendLine(`🔧 Removed non-running tool: ${toolMessage.toolInfo?.name || 'unknown'}`);
       }
     }
+    
+    this.outputChannel.appendLine(`🧹 All pending tools processed for OneShoot session`);
+    
+    // Принудительно обновляем UI
+    this.fireEvent('sessionUpdated', sessionId);
+    this.outputChannel.appendLine(`🔄 Fired sessionUpdated event for ${sessionId}`);
   }
 
   private formatToolUse(toolBlock: any): string {

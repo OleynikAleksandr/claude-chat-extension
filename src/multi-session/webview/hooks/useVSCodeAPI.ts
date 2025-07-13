@@ -35,6 +35,10 @@ export interface VSCodeAPIHook {
   
   // Interactive command support
   sendInteractiveResponse: (sessionId: string, command: string, selection: string | number, metadata?: any) => void;
+  
+  // Session management
+  getAvailableSessions: () => Promise<any[]>;
+  createOneShootSessionWithResume: (resumeSessionId: string, name?: string) => void;
 }
 
 export function useVSCodeAPI(): VSCodeAPIHook {
@@ -47,8 +51,7 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   const [serviceInfoMap, setServiceInfoMap] = useState<Map<string, ServiceMessage>>(new Map());
   const [activeServiceInfo, setActiveServiceInfo] = useState<ServiceMessage | null>(null);
   
-  // 🧪 Smart token filtering - prevent UI jumps by ignoring decreasing values
-  const [lastValidTokens, setLastValidTokens] = useState<number>(0);
+  // 🎯 УДАЛЕНО: lastValidTokens больше не нужно
 
   // Send message to VS Code extension
   const sendMessage = useCallback((message: WebviewMessage) => {
@@ -148,21 +151,26 @@ export function useVSCodeAPI(): VSCodeAPIHook {
             return newMap;
           });
           
+          // 🎯 ИСПРАВЛЕНИЕ: Определяем тип сессии для правильной обработки OneShoot
+          const session = sessions.find(s => s.id === message.sessionId);
+          const isOneShootSession = session?.mode === 'oneshoot';
+          
+          // 🎯 ИСПРАВЛЕНИЕ: Для OneShoot сессий ВСЕГДА обновляем activeSessionId и индикатор
+          if (isOneShootSession) {
+            console.log(`🔥 OneShoot session detected: ${message.sessionId}, auto-switching active session`);
+            setActiveSessionId(message.sessionId);
+          }
+          
           // 🎨 Update activeServiceInfo with smart session handling
-          // Always update if no active session, or if it matches active session
-          if (!activeSessionId || message.sessionId === activeSessionId) {
-            const newTokens = message.serviceInfo.usage.cache_read_input_tokens || 0;
-            
-            // 🧪 Smart filtering: ignore decreasing token values (prevents UI jumps)
-            // BUT always update status changes regardless of token count
-            if (newTokens >= lastValidTokens || lastValidTokens === 0 || 
-                !activeServiceInfo || activeServiceInfo.status !== message.serviceInfo.status) {
-              console.log(`🎨 Updating serviceInfo: status=${message.serviceInfo.status}, tokens=${newTokens}`);
-              setActiveServiceInfo(message.serviceInfo);
-              setLastValidTokens(newTokens);
-            } else {
-              console.log(`🧪 Filtered decreasing tokens: ${newTokens} < ${lastValidTokens}`);
-            }
+          // For OneShoot: always update, For others: only if active session matches
+          const shouldUpdate = isOneShootSession || !activeSessionId || message.sessionId === activeSessionId;
+          
+          if (shouldUpdate) {
+            // 🎯 ИСПРАВЛЕНО: Убрана накопительная логика, всегда обновляем с актуальными данными
+            console.log(`🎨 Updating serviceInfo: status=${message.serviceInfo.status}, oneShoot=${isOneShootSession}`);
+            console.log(`🔢 Token data: creation=${message.serviceInfo.usage.cache_creation_input_tokens}, read=${message.serviceInfo.usage.cache_read_input_tokens}`);
+            setActiveServiceInfo(message.serviceInfo);
+            // Убираем lastValidTokens - теперь не нужно
           }
         }
         break;
@@ -187,7 +195,7 @@ export function useVSCodeAPI(): VSCodeAPIHook {
       default:
         console.warn('Unknown message command:', message);
     }
-  }, [activeSessionId, lastValidTokens]);
+  }, [activeSessionId]);
 
   // Set up message listener
   useEffect(() => {
@@ -215,6 +223,8 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   const createOneShootSession = useCallback((name?: string) => {
     setIsLoading(true);
     setError(null);
+    // 🎯 ИСПРАВЛЕНИЕ: Сброс служебной информации при создании новой OneShoot сессии
+    setActiveServiceInfo(null);
     sendMessage({ command: 'createOneShootSession', name });
   }, [sendMessage]);
 
@@ -259,6 +269,44 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     });
   }, [sendMessage]);
 
+  // Get available sessions
+  const getAvailableSessions = useCallback((): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Timeout waiting for available sessions'));
+      }, 5000);
+
+      const messageListener = (event: MessageEvent) => {
+        const message = event.data;
+        if (message.command === 'availableSessionsResult') {
+          clearTimeout(timeoutId);
+          window.removeEventListener('message', messageListener);
+          
+          if (message.success) {
+            resolve(message.sessions || []);
+          } else {
+            reject(new Error(message.error || 'Failed to get sessions'));
+          }
+        }
+      };
+
+      window.addEventListener('message', messageListener);
+      sendMessage({ command: 'getAvailableSessions' });
+    });
+  }, [sendMessage]);
+
+  // Create OneShoot session with resume
+  const createOneShootSessionWithResume = useCallback((resumeSessionId: string, name?: string) => {
+    setIsLoading(true);
+    setError(null);
+    setActiveServiceInfo(null);
+    sendMessage({ 
+      command: 'createOneShootSessionWithResume', 
+      resumeSessionId, 
+      name 
+    });
+  }, [sendMessage]);
+
   return {
     sessions,
     activeSessionId,
@@ -274,6 +322,8 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     renameSession,
     refreshState,
     onServiceInfoUpdate,
-    sendInteractiveResponse
+    sendInteractiveResponse,
+    getAvailableSessions,
+    createOneShootSessionWithResume
   };
 }

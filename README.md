@@ -1,6 +1,6 @@
 # ClaudeCodeBridge 🌉
 
-[![Version](https://img.shields.io/badge/version-0.10.71-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.10.71)
+[![Version](https://img.shields.io/badge/version-0.10.97-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.10.97)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-brightgreen.svg)](https://code.visualstudio.com/)
 [![GitHub Release](https://img.shields.io/github/v/release/OleynikAleksandr/claude-chat-extension)](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
@@ -9,16 +9,18 @@
 
 ClaudeCodeBridge enables seamless integration between VS Code and Anthropic's Claude Code CLI, providing a native chat interface with full bidirectional communication capabilities.
 
-## 🚀 Version 0.10.71 - OneShoot Process Architecture
+## 🚀 Version 0.10.97 - Enhanced OneShoot Tool Display
 
-Latest release with **revolutionary OneShoot Process Architecture** based on extensive research of Claudia application, delivering 91% cost reduction on follow-up requests.
+Latest release with **revolutionary tool display system** that moves tool indicators to the footer for a cleaner chat experience with smart path truncation and real-time status tracking.
 
 ### 🚀 Major New Features
-- **OneShoot Process Architecture**: One-time processes with `--print` and `--resume` flags
-- **91% Cost Reduction**: From $0.359 to $0.031 on follow-up messages through efficient caching
-- **Session Mode 'oneshoot'**: New session type for cost-effective communication
-- **Resume Functionality**: Seamless conversation continuation across requests
-- **JSON Response Parsing**: Full parsing of `stream-json` output from Claude Code
+- **📌 Footer Tool Display**: Tool calls moved from chat to footer for cleaner interface
+- **🔗 Smart Path Truncation**: Intelligent file path shortening preserving filenames
+- **🎯 Real-time Tool Status**: Live display of active tools with parameters
+- **✅ "Ready for next task"**: Clear status when assistant awaits input
+- **🎭 Minimalist Design**: Clean gray borders with outline-only status indicators
+- **🚀 OneShoot Process Architecture**: One-time processes with `--print` and `--resume` flags
+- **💰 91% Cost Reduction**: From $0.359 to $0.031 on follow-up messages through efficient caching
 
 ### ✨ Key Features
 

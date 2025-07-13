@@ -15,12 +15,21 @@ export class ResumeCommandHandler extends InteractiveCommandHandler<ResumeSessio
    * Проверяет, является ли вывод списком сессий от /resume
    */
   protected canHandleSpecific(output: string): boolean {
+    // Логируем вывод для отладки
+    this.log(`Resume output check: "${output.substring(0, 200)}..."`);
+    
     // Ищем признаки списка сессий
     const hasSessionList = output.includes('Available sessions:') || 
                           output.includes('Recent sessions:') ||
                           output.includes('Select a session:') ||
-                          (output.includes('1.') && output.includes('2.'));
+                          output.includes('sessions found') ||
+                          output.includes('Session from') ||
+                          (output.includes('1.') && output.includes('2.')) ||
+                          (output.includes('1)') && output.includes('2)')) ||
+                          // Поиск паттерна с датами
+                          /\d{4}-\d{2}-\d{2}.*\d{2}:\d{2}/.test(output);
     
+    this.log(`Resume can handle: ${hasSessionList}`);
     return hasSessionList;
   }
 

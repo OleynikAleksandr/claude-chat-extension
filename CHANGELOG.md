@@ -5,6 +5,70 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.11.10] - 2025-07-13
+
+### 🚫 Critical Fix: Double Error Handling Prevention
+
+### Fixed
+- **Double Error Prevention**: Fixed issue where context limit errors were processed twice (first as JSON result, then as process exit)
+- **Clean Session State**: Process exit code 1 now ignored when context limit was already handled gracefully
+- **Log Clarity**: Added "Process exit ignored - context limit already handled gracefully" message
+- **Stable UX**: Eliminates red error state appearing after user-friendly context limit message
+
+### Technical Changes
+- Added `contextLimitDetected` flag in `OneShootProcessSessionManager` to prevent duplicate error processing
+- Enhanced `executeCommandStreaming()` to check flag before creating "Process exited with code 1" error
+- Flag resets on each new message to ensure clean state for subsequent operations
+
+## [0.11.9] - 2025-07-13
+
+### 🚫 Critical Fix: Context Limit Error Handling
+
+### Fixed
+- **Context Limit UX**: "Prompt is too long" errors now show user-friendly message instead of session crash
+- **Error Message**: Clear Russian text: "Невозможно продолжить сессию: Она имеет предельный контекст. Создайте новую сессию и продолжайте работу в ней."
+- **Session Stability**: OneShoot sessions no longer crash on context limit, completing gracefully with guidance
+- **Resume Detection**: Automatic detection of context limit errors from Claude CLI JSON responses
+
+### Technical Changes
+- Extended `ClaudeJsonResponse` interface with result-specific fields (`is_error`, `result`, `duration_ms`)
+- Added special `ContextLimitError` handling in `OneShootProcessSessionManager.processJsonLine()`
+- Enhanced `DualSessionManager.handleOneShootError()` to convert context errors into user messages
+- Session status changes to "completed" instead of "error" for context limit cases
+
+## [0.10.97] - 2025-07-13
+
+### 🎨 Revolutionary: Enhanced OneShoot Tool Display
+
+### New Features
+- **📌 Footer Tool Indicator**: Tool calls now display exclusively in the bottom footer instead of cluttering the chat
+- **🔗 Smart Path Truncation**: File paths intelligently shortened while preserving filename (e.g., `/very/long/path/file.txt` → `/very/.../file.txt`)
+- **🎯 Real-time Tool Tracking**: Shows currently active tool with its parameters in footer
+- **✅ "Ready for next task"**: Clear status message when assistant is waiting for input
+- **🎭 Minimalist Design**: Clean gray border with outline-only status dot
+
+### Enhanced
+- **Tool Parameter Display**: Shows tool name with key parameters
+  - `Read: package.json`
+  - `LS: /src/.../components` 
+  - `Bash: npm install`
+- **Smooth Animations**: 300ms fade-in/slide-up transitions for tool changes
+- **Universal Tool Support**: Works with all Claude Code tools (Read, Write, Edit, LS, Bash, etc.)
+- **Clean Chat Interface**: Removed distracting tool plaque from main conversation
+
+### Visual Improvements
+- **Minimalist Status Dot**: Hollow circle with border animation during activity
+- **Intelligent Truncation**: Preserves important filename information in long paths
+- **Smooth Status Transitions**: Animated changes between tool states
+- **Consistent Design Language**: Matches VS Code theme colors and typography
+
+### Technical Details
+- Advanced path truncation algorithm preserving filename visibility
+- React component architecture for smooth state management
+- CSS animations with reduced motion support for accessibility
+- Real-time tool parameter extraction from Claude Code responses
+- Performance optimized with minimal re-renders
+
 ## [0.10.76] - 2025-07-12
 
 ### 🔧 Enhanced: Smart Tool Status Management

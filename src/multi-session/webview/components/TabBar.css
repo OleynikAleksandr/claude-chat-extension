@@ -14,11 +14,6 @@
   min-height: 32px;
 }
 
-.tab-context-indicator {
-  border-bottom: none;
-  background-color: var(--vscode-input-background);
-}
-
 .tabs-container {
   display: flex;
   gap: 0;
@@ -123,13 +118,18 @@
   background-color: var(--vscode-button-background);
   color: var(--vscode-button-foreground);
   border: none;
-  padding: 3px 6px;
+  padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
   font-size: 11px;
   font-weight: 500;
   transition: all 0.2s ease;
   white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  max-height: 20px;
 }
 
 .new-session-button:hover:not(.disabled) {
@@ -159,14 +159,18 @@
 }
 
 .session-count {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--vscode-button-foreground);
-  padding: 3px 6px;
+  padding: 4px 8px;
   background-color: var(--vscode-badge-background);
-  border-radius: 6px;
-  min-width: 20px;
+  border-radius: 10px;
+  min-width: 32px;
+  min-height: 20px;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* Animations */
@@ -202,6 +206,59 @@
   color: #808080;
 }
 
+/* 🔧 Session Indicators Container */
+.session-indicators {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  padding: 0;
+  background-color: var(--vscode-input-background);
+  border-top: 1px solid var(--vscode-widget-border);
+}
+
+.tab-context-indicator {
+  border-bottom: none;
+  background-color: var(--vscode-input-background);
+  flex: 1;
+  width: 100%;
+}
+
+/* 🔧 Terminal Toggle Button */
+.terminal-toggle {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-foreground);
+  border: 1px solid var(--vscode-button-border);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: monospace;
+  transition: all 0.2s ease;
+  min-width: 28px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.terminal-toggle:hover {
+  background-color: var(--vscode-button-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.terminal-toggle.active {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  font-weight: bold;
+}
+
+.terminal-toggle.active:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
 /* Responsive design */
 @media (max-width: 400px) {
   .tab {
@@ -214,7 +271,20 @@
   }
   
   .new-session-button {
-    padding: 6px 8px;
-    font-size: 11px;
+    padding: 3px 6px;
+    font-size: 10px;
+    height: 18px;
+    max-height: 18px;
+  }
+  
+  .session-indicators {
+    gap: 4px;
+    padding: 4px;
+  }
+  
+  .terminal-toggle {
+    min-width: 24px;
+    height: 20px;
+    font-size: 10px;
   }
 }

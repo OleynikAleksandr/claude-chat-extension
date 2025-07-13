@@ -7,6 +7,7 @@
 import * as vscode from 'vscode';
 import { DualSessionManager } from '../managers/DualSessionManager';
 import { WebviewMessage, ExtensionMessage } from '../types/Session';
+import { SessionReader } from '../utils/SessionReader';
 
 export class MultiSessionProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'claudeChatMultiSessionView';
@@ -14,6 +15,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
   private view?: vscode.WebviewView;
   private sessionManager: DualSessionManager;
   private outputChannel: vscode.OutputChannel;
+  private sessionReader: SessionReader;
 
   constructor(private readonly extensionUri: vscode.Uri) {
     // Create output channel
@@ -21,6 +23,9 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
     
     // Initialize session manager
     this.sessionManager = new DualSessionManager(this.outputChannel);
+    
+    // Initialize session reader
+    this.sessionReader = new SessionReader();
     
     // Setup event listeners
     this.setupSessionEventListeners();
@@ -230,6 +235,42 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
           }
           break;
 
+        case 'createOneShootSessionWithResume':
+          try {
+            this.outputChannel.appendLine(`🔄 Creating OneShoot session with resume: ${message.resumeSessionId}`);
+            
+            // Create session with resume parameter
+            const session = await this.sessionManager.createSession(
+              message.name || 'Resumed Session', 
+              'oneshoot',
+              { resumeSessionId: message.resumeSessionId }
+            );
+            
+            this.outputChannel.appendLine(`✅ OneShoot session with resume created successfully: ${session.name} (${session.id})`);
+            
+            // Send success feedback
+            this.sendMessage({
+              command: 'sessionCreated',
+              sessionId: session.id,
+              session: {
+                id: session.id,
+                name: session.name,
+                mode: session.mode,
+                messages: session.messages,
+                status: session.status,
+                createdAt: session.createdAt,
+                lastActiveAt: session.lastActiveAt
+              }
+            });
+          } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to create OneShoot session with resume: ${error}`);
+            this.sendMessage({
+              command: 'error',
+              message: `Failed to create session with resume: ${error}`
+            });
+          }
+          break;
+
         case 'switchSession':
           try {
             this.outputChannel.appendLine(`🔄 Switching to session: ${message.sessionId}`);
@@ -344,6 +385,42 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
             this.sendMessage({
               command: 'error',
               message: `Health check failed: ${error}`
+            });
+          }
+          break;
+
+
+        case 'getAvailableSessions':
+          try {
+            this.outputChannel.appendLine(`📋 Getting available sessions for current project`);
+            
+            // Get current workspace folder
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+              this.sendMessage({
+                command: 'availableSessionsResult',
+                success: false,
+                error: 'No workspace folder open'
+              });
+              return;
+            }
+
+            const currentProjectPath = workspaceFolder.uri.fsPath;
+            const sessions = await this.sessionReader.getSessionsForCurrentProject(currentProjectPath);
+            
+            this.outputChannel.appendLine(`✅ Found ${sessions.length} sessions for project: ${currentProjectPath}`);
+            
+            this.sendMessage({
+              command: 'availableSessionsResult',
+              success: true,
+              sessions: sessions
+            });
+          } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to get available sessions: ${error}`);
+            this.sendMessage({
+              command: 'availableSessionsResult',
+              success: false,
+              error: `Failed to get sessions: ${error}`
             });
           }
           break;
