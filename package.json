@@ -1,0 +1,108 @@
+{
+  "name": "claude-chat",
+  "displayName": "Claude Chat",
+  "description": "VS Code extension for Claude Code CLI with OneShoot architecture, real-time tool monitoring, multi-session support, and streaming responses",
+  "version": "0.12.16",
+  "publisher": "aleksandr-oleynik",
+  "author": {
+    "name": "Aleksandr Oleynik",
+    "email": "contact@oleynik.dev"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/OleynikAleksandr/claude-chat-extension.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OleynikAleksandr/claude-chat-extension/issues"
+  },
+  "homepage": "https://github.com/OleynikAleksandr/claude-chat-extension#readme",
+  "keywords": [
+    "claude",
+    "chat",
+    "cli",
+    "terminal",
+    "anthropic",
+    "ai",
+    "vscode-extension",
+    "bidirectional",
+    "real-time",
+    "bridge",
+    "claude-code"
+  ],
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "claudeChat.openChat",
+        "title": "Claude Chat: Open Chat Panel",
+        "category": "Claude Chat"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "claude-chat-container",
+          "title": "Claude Chat",
+          "icon": "media/icons/claude-chat.svg"
+        }
+      ]
+    },
+    "views": {
+      "claude-chat-container": [
+        {
+          "type": "webview",
+          "id": "claudeChatMultiSessionView",
+          "name": "Claude Chat",
+          "icon": "media/icons/claude-chat.svg",
+          "when": "true"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "claudeChat.openChat",
+        "key": "ctrl+shift+c",
+        "mac": "cmd+shift+c"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run build",
+    "build": "npm run build:extension && npm run build:webview",
+    "build:extension": "tsc -p ./ || true",
+    "build:webview": "webpack --mode production",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "watch:webview": "webpack --mode development --watch",
+    "pretest": "npm run build && npm run lint",
+    "lint": "eslint src --ext ts,tsx",
+    "test": "vscode-test"
+  },
+  "devDependencies": {
+    "@types/node": "20.x",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@types/vscode": "^1.85.0",
+    "@typescript-eslint/eslint-plugin": "^6.15.0",
+    "@typescript-eslint/parser": "^6.15.0",
+    "@vscode/test-cli": "^0.0.4",
+    "@vscode/test-electron": "^2.3.8",
+    "@vscode/vsce": "^3.6.0",
+    "css-loader": "^7.1.2",
+    "eslint": "^8.56.0",
+    "html-webpack-plugin": "^5.6.3",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.3.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1"
+  }
+}

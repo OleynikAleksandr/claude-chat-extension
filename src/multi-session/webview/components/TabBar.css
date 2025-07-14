@@ -1,0 +1,307 @@
+/* TabBar Component Styles */
+
+.tab-bar-container {
+  flex-shrink: 0;
+  background-color: var(--vscode-editor-background);
+}
+
+.tab-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: stretch;
+  background-color: var(--vscode-editor-background);
+  padding: 0;
+  min-height: 28px;
+}
+
+.tabs-container {
+  display: flex;
+  gap: 0;
+  flex-grow: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  background-color: var(--vscode-editor-background);
+  align-items: flex-end;
+}
+
+.tabs-container::-webkit-scrollbar {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  background-color: var(--vscode-tab-inactiveBackground);
+  border: 1px solid transparent;
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  user-select: none;
+  min-width: 80px;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  position: relative;
+  height: 24px;
+  opacity: 0.7;
+}
+
+.tab:hover {
+  background-color: var(--vscode-tab-hoverBackground);
+  border-color: var(--vscode-tab-hoverBorder);
+}
+
+.tab.active {
+  background-color: var(--vscode-input-background);
+  color: var(--vscode-tab-activeForeground);
+  font-weight: 500;
+  opacity: 1;
+}
+
+.tab.creating,
+.tab.starting {
+  position: relative;
+}
+
+.tab.creating .status-indicator,
+.tab.starting .status-indicator {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.tab.error {
+  border-left: 3px solid var(--vscode-errorForeground);
+  background-color: var(--vscode-inputValidation-errorBackground);
+}
+
+.tab-name {
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.status-indicator {
+  font-size: 9px;
+  flex-shrink: 0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: normal;
+  line-height: 16px;
+  text-align: center;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-button:hover {
+  background-color: #ff0000;
+  color: #fff;
+  transform: scale(1.1);
+}
+
+.tab-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  padding: 0 8px;
+  background-color: var(--vscode-editor-background);
+}
+
+.new-session-button {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  height: 20px;
+  max-height: 20px;
+}
+
+.new-session-button:hover:not(.disabled) {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.new-session-button.disabled {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-disabledForeground);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.new-session-button.process {
+  background-color: var(--vscode-terminal-ansiYellow);
+  color: var(--vscode-terminal-ansiBlack);
+}
+
+.new-session-button.monitor {
+  background-color: var(--vscode-terminal-ansiBlue);
+  color: var(--vscode-terminal-ansiWhite);
+}
+
+.new-session-button.monitor.active {
+  background-color: var(--vscode-terminal-ansiRed);
+  color: var(--vscode-terminal-ansiWhite);
+}
+
+.new-session-button.process:hover:not(.disabled) {
+  background-color: var(--vscode-terminal-ansiBrightYellow);
+}
+
+.mode-badge {
+  margin-left: 4px;
+  font-size: 10px;
+  opacity: 0.8;
+}
+
+.session-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--vscode-button-foreground);
+  padding: 4px 8px;
+  background-color: var(--vscode-badge-background);
+  border-radius: 10px;
+  min-width: 32px;
+  min-height: 20px;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.1);
+  }
+}
+
+/* Status-specific styles */
+.status-creating {
+  color: #ffa500;
+}
+
+.status-starting {
+  color: #ffff00;
+}
+
+.status-ready {
+  color: #00ff00;
+}
+
+.status-error {
+  color: #ff0000;
+}
+
+.status-closed {
+  color: #808080;
+}
+
+/* 🔧 Session Indicators Container */
+.session-indicators {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  padding: 0;
+  background-color: var(--vscode-input-background);
+  border-top: 1px solid var(--vscode-widget-border);
+}
+
+.tab-context-indicator {
+  border-bottom: none;
+  background-color: var(--vscode-input-background);
+  flex: 1;
+  width: 100%;
+}
+
+/* 🔧 Raw Monitor Toggle Button */
+.terminal-toggle {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-foreground);
+  border: 1px solid var(--vscode-button-border);
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: bold;
+  font-family: monospace;
+  transition: all 0.2s ease;
+  min-width: 28px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.terminal-toggle:hover {
+  background-color: var(--vscode-button-hoverBackground);
+  border-color: var(--vscode-focusBorder);
+}
+
+.terminal-toggle.active {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 0 0 1px var(--vscode-focusBorder);
+  font-weight: bold;
+}
+
+.terminal-toggle.active:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+/* Responsive design */
+@media (max-width: 400px) {
+  .tab {
+    min-width: 100px;
+    padding: 6px 8px;
+  }
+  
+  .tab-name {
+    font-size: 11px;
+  }
+  
+  .new-session-button {
+    padding: 3px 6px;
+    font-size: 10px;
+    height: 18px;
+    max-height: 18px;
+  }
+  
+  .session-indicators {
+    gap: 4px;
+    padding: 4px;
+  }
+  
+  .terminal-toggle {
+    min-width: 24px;
+    height: 20px;
+    font-size: 10px;
+  }
+}

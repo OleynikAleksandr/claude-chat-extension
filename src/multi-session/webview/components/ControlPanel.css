@@ -1,0 +1,81 @@
+/* ControlPanel Component Styles */
+
+.control-panel {
+  background-color: var(--vscode-editor-background);
+  border-top: 1px solid var(--vscode-widget-border);
+  border-bottom: 1px solid var(--vscode-widget-border);
+  min-height: 30px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.control-panel-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  height: 100%;
+}
+
+.control-panel-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-panel-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Simple button styles */
+.control-button {
+  background-color: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  border: 1px solid var(--vscode-button-border, transparent);
+  padding: 2px 8px;
+  height: 22px;
+  font-size: 12px;
+  font-weight: normal;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: background-color 0.1s;
+  white-space: nowrap;
+}
+
+.control-button:hover:not(:disabled) {
+  background-color: var(--vscode-button-secondaryHoverBackground);
+}
+
+.control-button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.control-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-button.active {
+  background-color: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.control-button.active:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+/* Session counter */
+.session-counter {
+  color: var(--vscode-foreground);
+  font-size: 12px;
+  padding: 2px 8px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  background-color: var(--vscode-button-secondaryBackground);
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px;
+}
