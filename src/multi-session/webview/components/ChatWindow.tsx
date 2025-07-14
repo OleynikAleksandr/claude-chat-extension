@@ -200,19 +200,18 @@ const EmptyState: React.FC<{ onCreateSession: () => void }> = ({ onCreateSession
   <div className="empty-state">
     <h3>Claude Chat Extension</h3>
     <div className="instructions">
-      <p className="success">✅ <strong>NEW in v0.12.16:</strong> OneShoot architecture with smart session caching and real-time tool monitoring!</p>
       <p><strong>Key Features:</strong></p>
       <ul>
-        <li>🚀 <strong>OneShoot Mode</strong> — Efficient single-request architecture using <code>claude --print --resume</code> for each message</li>
-        <li>💰 <strong>Efficient Session Caching</strong> — Smart caching dramatically reduces API token usage</li>
-        <li>🔧 <strong>Real-time Tool Monitoring</strong> — See exactly what tools Claude is using (Read, Write, Bash, etc.) with live status updates</li>
-        <li>📊 <strong>Token Usage Tracking</strong> — Visual progress bar shows input/output token consumption in real-time</li>
-        <li>💬 <strong>Multi-Session Support</strong> — Work with multiple Claude sessions simultaneously, each with its own context</li>
-        <li>🔄 <strong>Streaming Responses</strong> — See Claude's responses character-by-character as they're generated</li>
+        <li>💬 <strong>Multi-Session Support</strong> — Work with multiple Claude sessions simultaneously</li>
+        <li>🔧 <strong>Real-time Tool Monitoring</strong> — See exactly what tools Claude is using (Read, Write, Bash, etc.)</li>
+        <li>📊 <strong>Token Usage Tracking</strong> — Visual progress bar shows input/output token consumption</li>
+        <li>🔄 <strong>Streaming Responses</strong> — See Claude's responses as they're generated</li>
         <li>📁 <strong>Full File System Access</strong> — Claude can read, write, and modify files in your workspace</li>
-        <li>⚡ <strong>Instant Session Switching</strong> — Click tabs to instantly switch between active sessions</li>
+        <li>⚡ <strong>Instant Session Switching</strong> — Click tabs to switch between active sessions</li>
       </ul>
-      <p className="tip">💡 <strong>Tip:</strong> Click "+ New Session" above to start chatting with Claude</p>
+      <p><strong>How to get started:</strong></p>
+      <p>Click "+ New Session" above to create a new chat session with Claude</p>
+      <p><strong>RAW DATA button:</strong> Toggle to view raw JSONL responses from Claude Code CLI for debugging purposes</p>
     </div>
   </div>
 );
