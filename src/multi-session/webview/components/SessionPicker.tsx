@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ResumeSessionData } from '../../../interactive-commands/types';
+// Interactive commands types removed - only OneShoot mode now
+interface ResumeSessionData {
+  sessions: Array<{
+    id: string;
+    name: string;
+    projectPath: string;
+  }>;
+}
 import './SessionPicker.css';
 
 interface SessionPickerProps {

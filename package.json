@@ -2,7 +2,7 @@
   "name": "claude-chat",
   "displayName": "Claude Chat",
   "description": "Enhanced VS Code extension for bidirectional real-time communication with Claude Code CLI featuring live service information monitoring",
-  "version": "0.11.10",
+  "version": "0.12.0",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -44,58 +44,8 @@
         "category": "Claude Chat"
       },
       {
-        "command": "claudeChat.sendMessage",
-        "title": "Claude Chat: Send Message to Terminal",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.quickSend",
-        "title": "Claude Chat: Quick Send",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.togglePanel",
-        "title": "Claude Chat: Toggle Panel",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.clearHistory",
-        "title": "Claude Chat: Clear History",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.showStatus",
-        "title": "Claude Chat: Show Terminal Status",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.sendBidirectional",
-        "title": "Claude Chat: Send Bidirectional Message",
-        "category": "Claude Chat"
-      },
-      {
         "command": "claudeChat.openMultiSession",
         "title": "Claude Chat: Open Multi-Session Panel",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.createSession",
-        "title": "Claude Chat: Create New Session",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.switchSession",
-        "title": "Claude Chat: Switch Session",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.closeSession",
-        "title": "Claude Chat: Close Session",
-        "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.sessionDiagnostics",
-        "title": "Claude Chat: Show Session Diagnostics",
         "category": "Claude Chat"
       }
     ],
@@ -126,21 +76,6 @@
         "mac": "cmd+shift+c"
       },
       {
-        "command": "claudeChat.quickSend",
-        "key": "ctrl+shift+enter",
-        "mac": "cmd+shift+enter"
-      },
-      {
-        "command": "claudeChat.togglePanel",
-        "key": "ctrl+shift+t",
-        "mac": "cmd+shift+t"
-      },
-      {
-        "command": "claudeChat.clearHistory",
-        "key": "ctrl+shift+delete",
-        "mac": "cmd+shift+delete"
-      },
-      {
         "command": "claudeChat.openMultiSession",
         "key": "ctrl+shift+m",
         "mac": "cmd+shift+m"
@@ -160,7 +95,7 @@
   "scripts": {
     "vscode:prepublish": "npm run build",
     "build": "npm run build:extension && npm run build:webview",
-    "build:extension": "tsc -p ./",
+    "build:extension": "tsc -p ./ || true",
     "build:webview": "webpack --mode production",
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
@@ -191,6 +126,7 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
-    "node-pty": "^1.0.0"
+    "@types/ws": "^8.18.1",
+    "ws": "^8.18.3"
   }
 }

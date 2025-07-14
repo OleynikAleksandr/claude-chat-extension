@@ -8,7 +8,14 @@ import { TabBar } from './TabBar';
 import { ChatWindow } from './ChatWindow';
 import { SessionPicker } from './SessionPicker';
 import { useVSCodeAPI } from '../hooks/useVSCodeAPI';
-import { ResumeSessionData } from '../../../interactive-commands/types';
+// Interactive commands types removed - only OneShoot mode now
+interface ResumeSessionData {
+  sessions: Array<{
+    id: string;
+    name: string;
+    projectPath: string;
+  }>;
+}
 import './App.css';
 
 export const App: React.FC = () => {
@@ -18,7 +25,6 @@ export const App: React.FC = () => {
     isLoading,
     error,
     activeServiceInfo,
-    createSession,
     createOneShootSession,
     switchSession,
     closeSession,
@@ -28,7 +34,9 @@ export const App: React.FC = () => {
     onServiceInfoUpdate,
     sendInteractiveResponse,
     getAvailableSessions,
-    createOneShootSessionWithResume
+    createOneShootSessionWithResume,
+    toggleRawMonitor,
+    isRawMonitorActive
   } = useVSCodeAPI();
   
   // State for interactive commands
@@ -43,12 +51,6 @@ export const App: React.FC = () => {
   const activeSession = sessions.find(session => session.id === activeSessionId) || null;
   const canCreateNewSession = sessions.length < 2;
 
-  const handleCreateSession = useCallback(() => {
-    if (canCreateNewSession) {
-      const sessionNumber = sessions.length + 1;
-      createSession(`Session ${sessionNumber}`);
-    }
-  }, [canCreateNewSession, sessions.length, createSession]);
 
   const handleCreateOneShootSession = useCallback(() => {
     if (canCreateNewSession) {
@@ -74,7 +76,7 @@ export const App: React.FC = () => {
     // Special handling for /resume command in OneShoot sessions
     if (slashCommand === '/resume') {
       const activeSession = sessions.find(s => s.id === sessionId);
-      if (activeSession?.mode === 'oneshoot') {
+      if (activeSession) {
         try {
           // Get available sessions
           const availableSessions = await getAvailableSessions();
@@ -97,7 +99,7 @@ export const App: React.FC = () => {
             });
           }
         } catch (error) {
-          console.error('Failed to get available sessions:', error);
+          // Failed to get available sessions
         }
         return;
       }
@@ -118,7 +120,6 @@ export const App: React.FC = () => {
       
       if (selectedSessionInfo) {
         // Create new OneShoot session with --resume parameter
-        console.log('Creating OneShoot session with resume:', selectedSessionInfo.sessionId);
         createOneShootSessionWithResume(
           selectedSessionInfo.sessionId,
           `Resume: ${selectedSessionInfo.description || selectedSessionInfo.date}`
@@ -182,12 +183,18 @@ export const App: React.FC = () => {
         sessions={sessions}
         activeSessionId={activeSessionId}
         onTabSwitch={handleTabSwitch}
-        onNewSession={handleCreateSession}
-        onNewProcessSession={handleCreateOneShootSession}
+        onNewSession={handleCreateOneShootSession}
         onCloseSession={handleCloseSession}
+        onToggleRawMonitor={toggleRawMonitor}
         canCreateNewSession={canCreateNewSession}
         isLoading={isLoading}
-        cacheReadTokens={(activeServiceInfo?.usage.cache_creation_input_tokens || 0) + (activeServiceInfo?.usage.cache_read_input_tokens || 0)}
+        cacheReadTokens={(() => {
+          const cacheCreation = activeServiceInfo?.usage.cache_creation_input_tokens || 0;
+          const cacheRead = activeServiceInfo?.usage.cache_read_input_tokens || 0;
+          const total = cacheCreation + cacheRead;
+          return total;
+        })()}
+        isRawMonitorActive={isRawMonitorActive}
       />
       
       <ChatWindow

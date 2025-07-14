@@ -35,7 +35,7 @@ export interface MessageResponsePayload {
 
 export interface StatusUpdatePayload {
     status: 'ready' | 'busy' | 'error' | 'disconnected';
-    terminalActive: boolean;
+    sessionActive: boolean;
     claudeCliRunning?: boolean;
     lastActivity?: number;
 }
@@ -47,14 +47,6 @@ export interface ErrorPayload {
     recoverable: boolean;
 }
 
-// Terminal status interface
-export interface TerminalStatus {
-    hasActiveTerminal: boolean;
-    terminalName?: string;
-    claudeCliDetected: boolean;
-    lastCommand?: string;
-    pid?: number;
-}
 
 // Communication state
 export interface CommunicationState {
@@ -75,7 +67,7 @@ export interface PendingMessage {
 // Error codes
 export enum ErrorCode {
     NO_TERMINAL = 'NO_TERMINAL',
-    TERMINAL_BUSY = 'TERMINAL_BUSY', 
+ 
     CLAUDE_CLI_NOT_FOUND = 'CLAUDE_CLI_NOT_FOUND',
     MESSAGE_TOO_LONG = 'MESSAGE_TOO_LONG',
     RATE_LIMITED = 'RATE_LIMITED',
@@ -112,7 +104,7 @@ export interface BidirectionalSessionInfo {
     processId?: number;
     startTime: number;
     messageCount: number;
-    mode: 'terminal' | 'process' | 'hybrid';
+    mode: 'oneshoot';
 }
 
 // Configuration

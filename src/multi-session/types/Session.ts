@@ -3,25 +3,23 @@
  * Claude Chat Extension
  */
 
-import * as vscode from 'vscode';
-import { ProcessSessionManager } from '../managers/ProcessSessionManager';
 import { OneShootProcessSessionManager } from '../managers/OneShootProcessSessionManager';
 import { SessionInfo } from '../utils/SessionReader';
 
-export type SessionMode = 'terminal' | 'process' | 'oneshoot';
 
 export interface Session {
   id: string;
   name: string;
-  mode: SessionMode;
-  terminal?: vscode.Terminal;  // Only for terminal mode
-  processSession?: ProcessSessionManager;  // Only for process mode
-  oneShootSession?: OneShootProcessSessionManager;  // OneShoot process mode
+  oneShootSession?: OneShootProcessSessionManager;  // OneShoot process manager
   messages: Message[];
   status: SessionStatus;
   createdAt: Date;
   lastActiveAt: Date;
   pendingTools?: Map<string, Message>;  // For tracking streaming tool execution
+  lastCacheTokens?: {  // Last cache token values (replaced on each update, except type: result)
+    creation: number;
+    read: number;
+  };
 }
 
 export type SessionStatus = 'creating' | 'starting' | 'ready' | 'error' | 'closed';
@@ -56,6 +54,7 @@ export interface ServiceMessage {
   usage: UsageInfo;
   status: ServiceStatus;
   duration?: number;
+  rawJson?: any; // Raw JSON from Claude for status bar parsing
 }
 
 export interface ToolUseItem {
@@ -95,7 +94,6 @@ export interface SessionConfig {
 
 // Webview ↔ Extension Communication
 export type WebviewMessage = 
-  | { command: 'createSession'; name?: string; mode?: SessionMode }
   | { command: 'createOneShootSession'; name?: string }
   | { command: 'createOneShootSessionWithResume'; name?: string; resumeSessionId: string }
   | { command: 'switchSession'; sessionId: string }
@@ -106,20 +104,22 @@ export type WebviewMessage =
   | { command: 'getSessionState' }
   | { command: 'healthCheck' }
   | { command: 'interactiveResponse'; sessionId: string; interactiveCommand: string; selection: string | number; metadata?: any }
-  | { command: 'getAvailableSessions' };
+  | { command: 'getAvailableSessions' }
+  | { command: 'toggleRawMonitor' };
 
 export type ExtensionMessage = 
-  | { command: 'sessionsUpdated'; sessions: Omit<Session, 'terminal' | 'processSession'>[] }
+  | { command: 'sessionsUpdated'; sessions: Session[] }
   | { command: 'activeSessionChanged'; sessionId: string }
   | { command: 'sessionStatusChanged'; sessionId: string; status: SessionStatus }
   | { command: 'messageReceived'; sessionId: string; message: Message }
-  | { command: 'sessionCreated'; sessionId: string; session: Omit<Session, 'terminal' | 'processSession'> }
+  | { command: 'sessionCreated'; sessionId: string; session: Session }
   | { command: 'messageResponse'; sessionId: string; success: boolean; response?: Message; error?: string }
   | { command: 'healthCheckResult'; healthStatus: [string, boolean][] }
   | { command: 'serviceInfoReceived'; sessionId: string; serviceInfo: ServiceMessage }
   | { command: 'availableSessionsResult'; success: boolean; sessions?: SessionInfo[]; error?: string }
   | { command: 'interactiveInputRequired'; sessionId: string; interactiveCommand: string; data: any; prompt: string }
-  | { command: 'error'; message: string; sessionId?: string };
+  | { command: 'error'; message: string; sessionId?: string }
+  | { command: 'rawMonitorStatus'; isActive: boolean };
 
 export interface SessionManagerEvents {
   sessionCreated: (session: Session) => void;

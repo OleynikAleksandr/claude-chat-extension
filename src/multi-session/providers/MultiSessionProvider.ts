@@ -1,11 +1,11 @@
 /**
  * Multi-Session Provider
- * Integrates DualSessionManager with VS Code webview
+ * Integrates OneShootSessionManager with VS Code webview
  * Claude Chat Extension
  */
 
 import * as vscode from 'vscode';
-import { DualSessionManager } from '../managers/DualSessionManager';
+import { OneShootSessionManager } from '../managers/OneShootSessionManager';
 import { WebviewMessage, ExtensionMessage } from '../types/Session';
 import { SessionReader } from '../utils/SessionReader';
 
@@ -13,7 +13,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
   public static readonly viewType = 'claudeChatMultiSessionView';
   
   private view?: vscode.WebviewView;
-  private sessionManager: DualSessionManager;
+  private sessionManager: OneShootSessionManager;
   private outputChannel: vscode.OutputChannel;
   private sessionReader: SessionReader;
 
@@ -22,7 +22,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
     this.outputChannel = vscode.window.createOutputChannel('Claude Chat Multi-Session');
     
     // Initialize session manager
-    this.sessionManager = new DualSessionManager(this.outputChannel);
+    this.sessionManager = new OneShootSessionManager(this.outputChannel);
     
     // Initialize session reader
     this.sessionReader = new SessionReader();
@@ -79,7 +79,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
       <html lang="en">
       <head>
         <meta charset="UTF-8">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}' 'unsafe-eval'; img-src ${webview.cspSource} data: https:; connect-src https:;">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link href="${styleResetUri}" rel="stylesheet">
         <link href="${styleVSCodeUri}" rel="stylesheet">
@@ -177,39 +177,10 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
       this.outputChannel.appendLine(`📩 Received message: ${message.command} (${JSON.stringify(message)})`);
 
       switch (message.command) {
-        case 'createSession':
-          try {
-            this.outputChannel.appendLine(`🆕 Creating new terminal session: ${message.name || 'Unnamed'}`);
-            const session = await this.sessionManager.createSession(message.name);
-            this.outputChannel.appendLine(`✅ Terminal session created successfully: ${session.name} (${session.id})`);
-            
-            // Send success feedback
-            this.sendMessage({
-              command: 'sessionCreated',
-              sessionId: session.id,
-              session: {
-                id: session.id,
-                name: session.name,
-                mode: session.mode,
-                messages: session.messages,
-                status: session.status,
-                createdAt: session.createdAt,
-                lastActiveAt: session.lastActiveAt
-              }
-            });
-          } catch (error) {
-            this.outputChannel.appendLine(`❌ Failed to create terminal session: ${error}`);
-            this.sendMessage({
-              command: 'error',
-              message: `Failed to create terminal session: ${error}`
-            });
-          }
-          break;
-
         case 'createOneShootSession':
           try {
             this.outputChannel.appendLine(`🚀 Creating new OneShoot session: ${message.name || 'Unnamed'}`);
-            const session = await this.sessionManager.createSession(message.name, 'oneshoot');
+            const session = await this.sessionManager.createSession(message.name);
             this.outputChannel.appendLine(`✅ OneShoot session created successfully: ${session.name} (${session.id})`);
             
             // Send success feedback
@@ -219,7 +190,6 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
               session: {
                 id: session.id,
                 name: session.name,
-                mode: session.mode,
                 messages: session.messages,
                 status: session.status,
                 createdAt: session.createdAt,
@@ -227,10 +197,10 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
               }
             });
           } catch (error) {
-            this.outputChannel.appendLine(`❌ Failed to create process session: ${error}`);
+            this.outputChannel.appendLine(`❌ Failed to create OneShoot session: ${error}`);
             this.sendMessage({
               command: 'error',
-              message: `Failed to create process session: ${error}`
+              message: `Failed to create OneShoot session: ${error}`
             });
           }
           break;
@@ -241,8 +211,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
             
             // Create session with resume parameter
             const session = await this.sessionManager.createSession(
-              message.name || 'Resumed Session', 
-              'oneshoot',
+              message.name || 'Resumed Session',
               { resumeSessionId: message.resumeSessionId }
             );
             
@@ -255,7 +224,6 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
               session: {
                 id: session.id,
                 name: session.name,
-                mode: session.mode,
                 messages: session.messages,
                 status: session.status,
                 createdAt: session.createdAt,
@@ -425,6 +393,28 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
           }
           break;
 
+        case 'toggleRawMonitor':
+          try {
+            this.outputChannel.appendLine(`📡 Toggling Raw JSON Output Channel`);
+            const isActive = this.sessionManager.toggleRawJsonOutputChannel();
+            this.sendMessage({
+              command: 'rawMonitorStatus',
+              isActive: isActive
+            });
+            this.outputChannel.appendLine(`✅ Raw JSON Output Channel is now ${isActive ? 'active' : 'inactive'}`);
+            
+            // Show notification to user
+            const action = isActive ? 'opened' : 'closed';
+            vscode.window.showInformationMessage(`Raw JSON Output Channel ${action}. Check the Output panel.`);
+          } catch (error) {
+            this.outputChannel.appendLine(`❌ Failed to toggle Raw JSON Output Channel: ${error}`);
+            this.sendMessage({
+              command: 'error',
+              message: `Failed to toggle Raw JSON Monitor: ${error}`
+            });
+          }
+          break;
+
         default:
           this.outputChannel.appendLine(`⚠️ Unknown command: ${(message as any).command}`);
           this.sendMessage({
@@ -445,7 +435,6 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
     const sessions = this.sessionManager.getAllSessions().map(session => ({
       id: session.id,
       name: session.name,
-      mode: session.mode,
       messages: session.messages,
       status: session.status,
       createdAt: session.createdAt,
@@ -484,7 +473,7 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
   }
 
   // Public methods for extension integration
-  public getSessionManager(): DualSessionManager {
+  public getSessionManager(): OneShootSessionManager {
     return this.sessionManager;
   }
 

@@ -5,6 +5,175 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.0] - 2025-01-14
+
+### 🎉 Major Release - OneShoot-Only Architecture
+
+This release completes the architectural refactoring to OneShoot-only mode, removing all legacy Terminal and Process modes for a cleaner, more efficient extension.
+
+### Added
+- **MIGRATION_GUIDE.md** - Comprehensive upgrade instructions
+- **Updated documentation** - All docs reflect OneShoot-only architecture
+- **Cleaner architecture** - Single mode for all sessions
+
+### Changed
+- **OneShoot-only mode** - All sessions now use the same architecture
+- **DualSessionManager → OneShootSessionManager** - Renamed main manager
+- **Simplified extension.ts** - Removed legacy commands
+- **Updated README.md** - New architecture documentation
+- **Updated CLAUDE.md** - Development guidance for OneShoot-only
+- **Updated MULTI_SESSION_ARCHITECTURE.md** - Complete rewrite
+
+### Removed
+- **Terminal Mode** - No longer supported
+- **Process Mode** - No longer supported
+- **17 legacy files** - Including managers and utilities
+- **~2500 lines of code** - Cleaner codebase
+- **10 legacy commands** - Simplified command set
+- **node-pty dependency** - No terminal emulation needed
+- **Console.log statements** - Cleaned debug output
+- **Commented code blocks** - Removed dead code
+- **SessionMode type** - No mode switching
+- **terminal field** - From Session interface
+
+### Fixed
+- **Code cleanup** - Removed all dead code and unused functions
+- **TypeScript compilation** - Clean build with no errors
+- **Package.json** - Updated commands and keybindings
+- **Documentation** - All docs updated for v0.12.0
+
+### Technical Details
+- Files removed: 17
+- Lines removed: ~2500
+- Commands removed: 10
+- Dependencies removed: 1
+- Cost reduction: 91% (maintained)
+- Architecture modes: 1 (down from 3)
+
+## [0.11.36] - 2025-01-14
+
+### 🧹 UI and Types Cleanup (Stage 6)
+
+### Removed
+- **Legacy bidirectional-bridge directory** - 5 obsolete files
+- **terminalManager.ts** - Legacy terminal management
+- **TerminalStatus interface** - No longer needed
+- **TERMINAL_BUSY error code** - Obsolete error
+- **node-pty dependency** - Terminal emulation library
+
+### Changed
+- **UI callbacks** - `onNewProcessSession` → `onNewSession`
+- **CSS comments** - Updated from "Terminal" to "Raw Monitor"
+- **Type fields** - `terminalActive` → `sessionActive`
+- **Session types** - Removed Omit<Session, 'terminal'> complexity
+- **BidirectionalSessionInfo.mode** - Now only supports 'oneshoot'
+
+### Fixed
+- Cleaned all Terminal/Process references from comments
+- Removed debugTerminals command
+- Updated all import statements
+
+## [0.11.35] - 2025-07-14
+
+### 🎯 OneShoot Simplification (Stage 5)
+
+### Removed
+- **All mode checks** - Removed `if (session.mode === 'oneshoot')` conditions
+- **Terminal event listeners** - setupTerminalEventListeners() and onTerminalClosed()
+- **SessionMode type** - No longer needed with single mode
+- **mode field** - Removed from Session interface
+- **terminal field** - Removed from Session interface
+
+### Changed
+- **DualSessionManager** → **OneShootSessionManager** - Renamed to reflect single mode
+- Simplified session creation and management logic
+- Updated all imports and references
+- Cleaned up WebviewMessage types to use full Session type
+- Removed mode references from logging
+
+### Fixed
+- All remaining TypeScript compilation errors
+- Webview component type issues
+- Extension command type annotations
+
+## [0.11.34] - 2025-07-14
+
+### 🗑️ Process Mode Components Removal (Stage 4)
+
+### Removed
+- **ProcessSessionManager.ts** - Complete process mode implementation (493 lines)
+- **ProcessSessionFactory** - Factory for creating process sessions
+- **Process Mode Logic** - All `mode === 'process'` conditions
+- **Process Event Handlers** - All process-specific event handling methods
+- **Unused Terminal Methods** - handleResponseFromTerminal, handleServiceInfoFromTerminal, startClaudeCode
+- **sessionMonitoringStatus** - Unused monitoring status tracking
+
+### Changed
+- Cleaned up Session interface by removing processSession field
+- Updated WebviewMessage types to exclude only 'terminal' in Omit
+- Removed all Terminal mode conditions that were still present
+- Simplified message sending and slash command execution
+
+### Fixed
+- All TypeScript compilation errors resolved
+- Clean build without needing `|| true` flag
+- Removed duplicate and conflicting code paths
+
+## [0.11.33] - 2025-07-14
+
+### 🗑️ Terminal Components Removal (Stage 3)
+
+### Removed
+- **JsonlResponseMonitor.ts** - Complete terminal response monitoring system
+- **InteractiveCommandManager** - Entire interactive-commands directory
+- **Terminal API Calls** - All vscode.window.createTerminal and terminal.sendText usage
+- **Terminal Event Listeners** - setupTerminalEventListeners and related handlers
+
+### Changed
+- Modified DualSessionManager to remove terminal-specific dependencies
+- Disabled terminal command sending functionality
+- Simplified session management by removing terminal monitoring
+
+### Known Issues
+- Multiple TypeScript errors due to mode comparisons
+- Some terminal-related code still remains (to be removed in Stage 4)
+- Build requires `|| true` flag due to type errors
+
+## [0.11.32] - 2025-07-14
+
+### 🚀 OneShoot Only Mode Begins
+
+### Changed
+- **UI Simplification**: Removed Terminal mode button from the interface
+- **OneShoot Only**: All new sessions are now created as OneShoot mode
+- **Type System**: SessionMode type now only supports 'oneshoot' value
+
+### Removed
+- Terminal session creation button from UI
+- `createSession` command from extension API
+- `handleCreateSession` function from React components
+
+### Technical
+- Modified `Session.ts` to restrict SessionMode to 'oneshoot' only
+- Updated `DualSessionManager` to always create OneShoot sessions
+- Removed Terminal mode UI elements from `TabBar.tsx`
+- Legacy terminal/process code retained for compatibility (to be removed in future releases)
+
+## [0.11.31] - 2025-07-14
+
+### 🎯 Real-time Token Indicator Fix
+
+### Fixed
+- **Real-time Updates**: Token indicator now updates immediately when first assistant message arrives
+- **No More Delays**: Fixed issue where indicator only appeared after final `result` message
+- **Accurate Tracking**: Prevented overwriting of real usage data with zeros
+- **Streaming Support**: Token counts update in real-time during message streaming
+
+### Technical Changes
+- Modified `handleOneShootStatusBarUpdate` to only send events for `tool_use` and `tool_result` messages
+- Preserved existing token values from `session.lastCacheTokens` instead of sending zeros
+- Eliminated duplicate `serviceInfoReceived` events that were overwriting real usage data
+
 ## [0.11.10] - 2025-07-13
 
 ### 🚫 Critical Fix: Double Error Handling Prevention

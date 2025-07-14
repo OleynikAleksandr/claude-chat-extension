@@ -8,6 +8,7 @@
 
 import * as vscode from 'vscode';
 import { spawn } from 'child_process';
+import { RawJsonOutputChannel } from '../../debug/RawJsonOutputChannel';
 
 export interface OneShootProcessConfig {
   sessionId: string;
@@ -18,6 +19,8 @@ export interface OneShootProcessConfig {
   showTerminal?: boolean;
   // 🔄 Resume session support
   resumeSessionId?: string;
+  // 📡 Raw JSON Output Channel for debugging
+  rawJsonOutputChannel?: RawJsonOutputChannel | null;
 }
 
 export interface ClaudeJsonResponse {
@@ -65,6 +68,7 @@ export class OneShootProcessSessionManager {
   public onExit?: (code: number | null, signal: string | null) => void;
   public onError?: (error: Error) => void;
   public onInteractivePrompt?: (prompt: string) => void;
+  public onStatusBarUpdate?: (json: any) => void;
 
   constructor(config: OneShootProcessConfig) {
     this.config = config;
@@ -141,6 +145,11 @@ export class OneShootProcessSessionManager {
           const text = data.toString();
           buffer += text;
           
+          // Send raw data to output channel if active
+          if (this.config.rawJsonOutputChannel && this.config.rawJsonOutputChannel.isMonitorActive()) {
+            this.config.rawJsonOutputChannel.sendRawData(text);
+          }
+          
           // Process complete JSON lines as they arrive
           buffer = this.processStreamingBuffer(buffer);
           
@@ -215,6 +224,12 @@ export class OneShootProcessSessionManager {
       const json = JSON.parse(line) as ClaudeJsonResponse;
       this.config.outputChannel.appendLine('Streaming JSON: type=' + json.type + ', subtype=' + (json.subtype || 'none'));
       
+      // Raw JSON is already sent in the stdout handler, no need to send again
+      // Just log for debugging
+      if (this.config.rawJsonOutputChannel) {
+        this.config.outputChannel.appendLine(`🔍 JSON line processed: type=${json.type}, monitor active: ${this.config.rawJsonOutputChannel.isMonitorActive()}`);
+      }
+      
       // Update session_id if received
       if (json.session_id) {
         this.claudeSessionId = json.session_id;
@@ -238,6 +253,9 @@ export class OneShootProcessSessionManager {
       
       // Emit data event for immediate processing
       this.onData?.(JSON.stringify(json));
+      
+      // Send status bar update event
+      this.onStatusBarUpdate?.(json);
       
     } catch (parseError) {
       // Not JSON string - log as regular text
@@ -277,6 +295,14 @@ export class OneShootProcessSessionManager {
   isAlive(): boolean {
     // OneShoot processes are always "alive" (created on demand)
     return true;
+  }
+
+  /**
+   * Update the RawJsonOutputChannel reference
+   */
+  setRawJsonOutputChannel(outputChannel: RawJsonOutputChannel | null): void {
+    this.config.rawJsonOutputChannel = outputChannel;
+    this.config.outputChannel.appendLine(`Updated RawJsonOutputChannel for ${this.config.sessionName}: ${outputChannel ? 'active' : 'inactive'}`);
   }
 
   /**

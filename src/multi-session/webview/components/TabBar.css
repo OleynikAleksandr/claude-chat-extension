@@ -148,6 +148,16 @@
   color: var(--vscode-terminal-ansiBlack);
 }
 
+.new-session-button.monitor {
+  background-color: var(--vscode-terminal-ansiBlue);
+  color: var(--vscode-terminal-ansiWhite);
+}
+
+.new-session-button.monitor.active {
+  background-color: var(--vscode-terminal-ansiRed);
+  color: var(--vscode-terminal-ansiWhite);
+}
+
 .new-session-button.process:hover:not(.disabled) {
   background-color: var(--vscode-terminal-ansiBrightYellow);
 }
@@ -223,7 +233,7 @@
   width: 100%;
 }
 
-/* 🔧 Terminal Toggle Button */
+/* 🔧 Raw Monitor Toggle Button */
 .terminal-toggle {
   background-color: var(--vscode-button-secondaryBackground);
   color: var(--vscode-button-foreground);

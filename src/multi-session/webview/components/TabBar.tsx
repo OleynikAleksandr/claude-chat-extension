@@ -9,19 +9,20 @@ import { ContextProgressBar } from './ContextProgressBar';
 import './TabBar.css';
 
 interface TabBarProps {
-  sessions: Omit<Session, 'terminal' | 'processSession'>[];
+  sessions: Session[];
   activeSessionId: string | null;
   onTabSwitch: (sessionId: string) => void;
   onNewSession: () => void;
-  onNewProcessSession: () => void;
   onCloseSession: (sessionId: string) => void;
+  onToggleRawMonitor?: () => void;
   canCreateNewSession: boolean;
   isLoading?: boolean;
   cacheReadTokens?: number;
+  isRawMonitorActive?: boolean;
 }
 
 interface SessionTabProps {
-  session: Omit<Session, 'terminal' | 'processSession'>;
+  session: Session;
   isActive: boolean;
   onSelect: () => void;
   onClose: () => void;
@@ -59,11 +60,10 @@ const SessionTab: React.FC<SessionTabProps> = ({ session, isActive, onSelect, on
     <div 
       className={`tab ${isActive ? 'active' : ''} ${session.status}`}
       onClick={onSelect}
-      title={`${session.name} - ${session.status} (${session.mode || 'terminal'})`}
+      title={`${session.name} - ${session.status}`}
     >
       <span className="tab-name">
         {session.name}
-        {session.mode === 'process' && <span className="mode-badge">⚡</span>}
       </span>
       {session.status !== 'creating' && (
         <button 
@@ -83,11 +83,12 @@ export const TabBar: React.FC<TabBarProps> = ({
   activeSessionId,
   onTabSwitch,
   onNewSession,
-  onNewProcessSession,
   onCloseSession,
+  onToggleRawMonitor,
   canCreateNewSession,
   isLoading = false,
-  cacheReadTokens = 0
+  cacheReadTokens = 0,
+  isRawMonitorActive = false
 }) => {
   return (
     <div className="tab-bar-container">
@@ -105,17 +106,18 @@ export const TabBar: React.FC<TabBarProps> = ({
         </div>
         
         <div className="tab-actions">
-          <button 
-            className={`new-session-button ${!canCreateNewSession ? 'disabled' : ''}`}
-            onClick={onNewSession}
-            disabled={!canCreateNewSession || isLoading}
-            title={canCreateNewSession ? 'Create new Terminal session' : 'Maximum sessions reached'}
-          >
-            {isLoading ? '🔄' : '🖥️ Terminal'}
-          </button>
+          {onToggleRawMonitor && (
+            <button 
+              className={`new-session-button monitor ${isRawMonitorActive ? 'active' : ''}`}
+              onClick={onToggleRawMonitor}
+              title={isRawMonitorActive ? 'Stop Raw JSON Monitor' : 'Start Raw JSON Monitor'}
+            >
+              {isRawMonitorActive ? '🔴 Monitor' : '📡 Monitor'}
+            </button>
+          )}
           <button 
             className={`new-session-button process ${!canCreateNewSession ? 'disabled' : ''}`}
-            onClick={onNewProcessSession}
+            onClick={onNewSession}
             disabled={!canCreateNewSession || isLoading}
             title={canCreateNewSession ? 'Create new OneShoot session' : 'Maximum sessions reached'}
           >

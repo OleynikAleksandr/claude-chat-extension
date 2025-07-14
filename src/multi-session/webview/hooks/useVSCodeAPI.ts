@@ -21,7 +21,6 @@ export interface VSCodeAPIHook {
   activeServiceInfo: ServiceMessage | null;
   
   // Actions
-  createSession: (name?: string) => void;
   createOneShootSession: (name?: string) => void;
   switchSession: (sessionId: string) => void;
   closeSession: (sessionId: string) => void;
@@ -39,6 +38,10 @@ export interface VSCodeAPIHook {
   // Session management
   getAvailableSessions: () => Promise<any[]>;
   createOneShootSessionWithResume: (resumeSessionId: string, name?: string) => void;
+  
+  // Raw JSON Monitor
+  toggleRawMonitor: () => void;
+  isRawMonitorActive: boolean;
 }
 
 export function useVSCodeAPI(): VSCodeAPIHook {
@@ -50,6 +53,9 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   // 🎨 Service Info State - Map-based solution for multi-session support
   const [serviceInfoMap, setServiceInfoMap] = useState<Map<string, ServiceMessage>>(new Map());
   const [activeServiceInfo, setActiveServiceInfo] = useState<ServiceMessage | null>(null);
+  
+  // Raw JSON Monitor state
+  const [isRawMonitorActive, setIsRawMonitorActive] = useState(false);
   
   // 🎯 УДАЛЕНО: lastValidTokens больше не нужно
 
@@ -151,23 +157,17 @@ export function useVSCodeAPI(): VSCodeAPIHook {
             return newMap;
           });
           
-          // 🎯 ИСПРАВЛЕНИЕ: Определяем тип сессии для правильной обработки OneShoot
-          const session = sessions.find(s => s.id === message.sessionId);
-          const isOneShootSession = session?.mode === 'oneshoot';
-          
           // 🎯 ИСПРАВЛЕНИЕ: Для OneShoot сессий ВСЕГДА обновляем activeSessionId и индикатор
-          if (isOneShootSession) {
-            console.log(`🔥 OneShoot session detected: ${message.sessionId}, auto-switching active session`);
-            setActiveSessionId(message.sessionId);
-          }
+          console.log(`🔥 OneShoot session detected: ${message.sessionId}, auto-switching active session`);
+          setActiveSessionId(message.sessionId);
           
           // 🎨 Update activeServiceInfo with smart session handling
-          // For OneShoot: always update, For others: only if active session matches
-          const shouldUpdate = isOneShootSession || !activeSessionId || message.sessionId === activeSessionId;
+          // Always update since we only have OneShoot mode now
+          const shouldUpdate = true;
           
           if (shouldUpdate) {
             // 🎯 ИСПРАВЛЕНО: Убрана накопительная логика, всегда обновляем с актуальными данными
-            console.log(`🎨 Updating serviceInfo: status=${message.serviceInfo.status}, oneShoot=${isOneShootSession}`);
+            console.log(`🎨 Updating serviceInfo: status=${message.serviceInfo.status}`);
             console.log(`🔢 Token data: creation=${message.serviceInfo.usage.cache_creation_input_tokens}, read=${message.serviceInfo.usage.cache_read_input_tokens}`);
             setActiveServiceInfo(message.serviceInfo);
             // Убираем lastValidTokens - теперь не нужно
@@ -192,6 +192,10 @@ export function useVSCodeAPI(): VSCodeAPIHook {
         console.error('Extension error:', message.message);
         break;
 
+      case 'rawMonitorStatus':
+        setIsRawMonitorActive(message.isActive);
+        break;
+
       default:
         console.warn('Unknown message command:', message);
     }
@@ -214,12 +218,6 @@ export function useVSCodeAPI(): VSCodeAPIHook {
   }, [handleExtensionMessage, sendMessage]);
 
   // Action creators
-  const createSession = useCallback((name?: string) => {
-    setIsLoading(true);
-    setError(null);
-    sendMessage({ command: 'createSession', name });
-  }, [sendMessage]);
-
   const createOneShootSession = useCallback((name?: string) => {
     setIsLoading(true);
     setError(null);
@@ -307,13 +305,17 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     });
   }, [sendMessage]);
 
+  // Toggle Raw JSON Monitor
+  const toggleRawMonitor = useCallback(() => {
+    sendMessage({ command: 'toggleRawMonitor' });
+  }, [sendMessage]);
+
   return {
     sessions,
     activeSessionId,
     isLoading,
     error,
     activeServiceInfo,
-    createSession,
     createOneShootSession,
     switchSession,
     closeSession,
@@ -324,6 +326,8 @@ export function useVSCodeAPI(): VSCodeAPIHook {
     onServiceInfoUpdate,
     sendInteractiveResponse,
     getAvailableSessions,
-    createOneShootSessionWithResume
+    createOneShootSessionWithResume,
+    toggleRawMonitor,
+    isRawMonitorActive
   };
 }

@@ -16,6 +16,3 @@ if (!container) {
 // Create React root and render the app
 const root = createRoot(container);
 root.render(<App />);
-
-// Log startup
-console.log('Claude Chat Multi-Session UI started successfully');
