@@ -48,3 +48,7 @@ coverage/
 
 # Documentation and session reports
 doc/
+
+# Project-specific files
+CLAUDE.md
+.markdownlint.json
