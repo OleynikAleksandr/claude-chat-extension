@@ -15,7 +15,7 @@ Latest release with **refined user interface** and **91% cost reduction** throug
 
 ### 🎯 Key Features
 - **🚀 OneShoot Architecture**: Single-request processes with `claude --print --resume`
-- **💰 91% Cost Reduction**: From $0.359 to $0.031 per follow-up message
+- **💰 91% Cost Reduction**: Dramatic savings through smart session caching
 - **🔧 Real-time Tool Monitoring**: Live display of Read, Write, Bash, and other tool usage
 - **📊 Token Usage Tracking**: Visual progress bar showing context consumption
 - **💬 Multi-Session Support**: Manage multiple independent Claude conversations

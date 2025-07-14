@@ -601,7 +601,7 @@ This release completes the architectural refactoring to OneShoot-only mode, remo
 
 ### Performance Benefits
 - **Token Efficiency**: Dramatic reduction in cache_creation_input_tokens on subsequent requests
-- **Cost Optimization**: From $0.359 to $0.031 (-91%) on follow-up messages
+- **Cost Optimization**: 91% reduction on follow-up messages through session caching
 - **Memory Efficiency**: No persistent processes, created on-demand
 - **Resume Support**: Full conversation context preservation
 
