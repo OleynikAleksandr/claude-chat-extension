@@ -1,6 +1,6 @@
 # ClaudeCodeBridge 🌉
 
-[![Version](https://img.shields.io/badge/version-0.12.0-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.12.0)
+[![Version](https://img.shields.io/badge/version-0.12.16-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.12.16)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-brightgreen.svg)](https://code.visualstudio.com/)
 [![GitHub Release](https://img.shields.io/github/v/release/OleynikAleksandr/claude-chat-extension)](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
@@ -9,27 +9,50 @@
 
 ClaudeCodeBridge enables seamless integration between VS Code and Anthropic's Claude Code CLI, providing a native chat interface with OneShoot architecture for maximum efficiency.
 
-## 🚀 Version 0.12.0 - OneShoot-Only Architecture
+## 🚀 Version 0.12.16 - Polished UI & OneShoot Architecture
 
-Major release with **complete refactoring to OneShoot-only mode**, removing legacy Terminal and Process modes for a cleaner, more efficient codebase.
+Latest release with **refined user interface** and **91% cost reduction** through efficient OneShoot-only architecture.
 
-### 🎯 Key Improvements
-- **🚀 Single Architecture**: Simplified to OneShoot-only mode for consistency
-- **📦 Smaller Codebase**: Removed 17 legacy files and ~2500 lines of code
-- **🔧 Cleaner API**: Simplified session management without mode switching
-- **⚡ Faster Performance**: Reduced complexity improves response times
-- **💰 91% Cost Reduction**: Maintained efficiency with `--print` and `--resume`
+### 🎯 Key Features
+- **🚀 OneShoot Architecture**: Single-request processes with `claude --print --resume`
+- **💰 91% Cost Reduction**: From $0.359 to $0.031 per follow-up message
+- **🔧 Real-time Tool Monitoring**: Live display of Read, Write, Bash, and other tool usage
+- **📊 Token Usage Tracking**: Visual progress bar showing context consumption
+- **💬 Multi-Session Support**: Manage multiple independent Claude conversations
+- **⚡ Streaming Responses**: Character-by-character response display
 
-### ✨ Core Features
+### ✨ What's New in v0.12.16
 
-- **🚀 OneShoot Process Architecture**: One-time processes with `--print` and `--resume` flags
-- **💰 Cost Efficient**: From $0.359 to $0.031 on follow-up messages through session caching
-- **📨 Real-time Communication**: Instant message exchange with Claude Code CLI
-- **🖥️ Multi-Session Support**: Manage multiple Claude sessions simultaneously
-- **📊 Context Progress Bar**: Visual indicator showing context usage with 160k token limit
-- **📊 Live Service Information**: Real-time tool usage, token counts, and processing status
-- **📌 Footer Tool Display**: Clean interface with tool indicators in the footer
-- **🔗 Smart Path Truncation**: Intelligent file path shortening preserving filenames
+- **Enhanced Status Bar**: Doubled height with improved readability
+- **Smart Path Truncation**: Long file paths intelligently shortened to 80 characters
+- **Refined Color Scheme**: Status indicators match token counter color (#00ff00)
+- **Smooth Animations**: Token progress bar grows from 0% with easing
+- **Consistent Tool Pulsation**: Active tools always show processing animation
+- **Button-style Status Bar**: Matches the design of session controls
+
+## 💡 How It Works
+
+### Real-time Tool Monitoring
+The extension displays exactly what Claude is doing at any moment:
+- **Reading files**: Shows "Read: /path/to/file.ts"
+- **Writing code**: Shows "Write: /path/to/new-file.js"
+- **Running commands**: Shows "Bash: npm install"
+- **Searching code**: Shows "Grep: searching for 'function'"
+- **Ready state**: Shows "Assistant Ready For Next Task" in green
+
+### Cost-Efficient Architecture
+Each message is processed as a separate request with session caching:
+1. User sends message
+2. Extension spawns `claude --print --resume` process
+3. Claude processes with cached context (91% token savings)
+4. Response streams back in real-time
+5. Process terminates cleanly
+
+### Multi-Session Workflow
+- Each session maintains independent context
+- Switch instantly between sessions via tabs
+- Sessions persist across VS Code restarts
+- Maximum 2 concurrent sessions (configurable)
 
 ## 🏗️ Architecture
 

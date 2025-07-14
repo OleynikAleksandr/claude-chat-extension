@@ -308,23 +308,13 @@ export class MultiSessionProvider implements vscode.WebviewViewProvider {
           break;
 
         case 'interactiveResponse':
-          try {
-            this.outputChannel.appendLine(`📝 Handling interactive response for session ${message.sessionId}: ${message.selection}`);
-            await this.sessionManager.handleInteractiveResponse({
-              sessionId: message.sessionId,
-              command: message.interactiveCommand,
-              selection: message.selection,
-              metadata: message.metadata
-            });
-            this.outputChannel.appendLine(`✅ Interactive response handled successfully`);
-          } catch (error) {
-            this.outputChannel.appendLine(`❌ Failed to handle interactive response: ${error}`);
-            this.sendMessage({
-              command: 'error',
-              message: `Failed to handle interactive response: ${error}`,
-              sessionId: message.sessionId
-            });
-          }
+          // Interactive responses not supported in OneShoot-only mode
+          this.outputChannel.appendLine(`Interactive responses not supported in OneShoot-only mode`);
+          this.sendMessage({
+            command: 'error',
+            message: 'Interactive commands are not supported in the current version',
+            sessionId: message.sessionId
+          });
           break;
 
         case 'renameSession':

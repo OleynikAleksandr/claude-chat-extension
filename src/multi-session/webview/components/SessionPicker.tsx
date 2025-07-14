@@ -10,18 +10,18 @@ interface ResumeSessionData {
 import './SessionPicker.css';
 
 interface SessionPickerProps {
-  /** Данные о доступных сессиях */
+  /** Data about available sessions */
   sessionData: ResumeSessionData;
-  /** Подсказка для пользователя */
+  /** Hint for the user */
   prompt: string;
-  /** Callback при выборе сессии */
+  /** Callback when selecting a session */
   onSelect: (sessionId: string) => void;
-  /** Callback при отмене */
+  /** Callback on cancel */
   onCancel: () => void;
 }
 
 /**
- * Компонент для выбора сессии из списка
+ * Component for selecting a session from the list
  */
 export const SessionPicker: React.FC<SessionPickerProps> = ({
   sessionData,
@@ -32,7 +32,7 @@ export const SessionPicker: React.FC<SessionPickerProps> = ({
   const [selectedId, setSelectedId] = useState<string>('');
   const [isClosing, setIsClosing] = useState(false);
 
-  // Автофокус на первой сессии
+  // Auto-focus on first session
   useEffect(() => {
     if (sessionData.sessions.length > 0) {
       setSelectedId(sessionData.sessions[0].id);

@@ -15,11 +15,8 @@ export interface OneShootProcessConfig {
   sessionName: string; 
   workingDirectory: string;
   outputChannel: vscode.OutputChannel;
-  // 🔧 Terminal visibility control
   showTerminal?: boolean;
-  // 🔄 Resume session support
   resumeSessionId?: string;
-  // 📡 Raw JSON Output Channel for debugging
   rawJsonOutputChannel?: RawJsonOutputChannel | null;
 }
 

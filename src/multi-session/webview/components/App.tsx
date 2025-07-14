@@ -7,6 +7,7 @@ import React, { useCallback, useState, useEffect } from 'react';
 import { TabBar } from './TabBar';
 import { ChatWindow } from './ChatWindow';
 import { SessionPicker } from './SessionPicker';
+import { ControlPanel } from './ControlPanel';
 import { useVSCodeAPI } from '../hooks/useVSCodeAPI';
 // Interactive commands types removed - only OneShoot mode now
 interface ResumeSessionData {
@@ -47,6 +48,9 @@ export const App: React.FC = () => {
     prompt: string;
   } | null>(null);
   
+  // State for maximum token value (only increases, never decreases)
+  const [maxTokenValue, setMaxTokenValue] = useState<number>(0);
+  
   
   const activeSession = sessions.find(session => session.id === activeSessionId) || null;
   const canCreateNewSession = sessions.length < 2;
@@ -55,7 +59,7 @@ export const App: React.FC = () => {
   const handleCreateOneShootSession = useCallback(() => {
     if (canCreateNewSession) {
       const sessionNumber = sessions.length + 1;
-      createOneShootSession(`OneShoot ${sessionNumber}`);
+      createOneShootSession(`Session ${sessionNumber}`);
     }
   }, [canCreateNewSession, sessions.length, createOneShootSession]);
 
@@ -162,6 +166,20 @@ export const App: React.FC = () => {
     };
   }, []);
 
+  // Update maxTokenValue when new value is not zero
+  useEffect(() => {
+    if (activeServiceInfo?.usage) {
+      const cacheCreation = activeServiceInfo.usage.cache_creation_input_tokens || 0;
+      const cacheRead = activeServiceInfo.usage.cache_read_input_tokens || 0;
+      const newTotal = cacheCreation + cacheRead;
+      
+      // Update if new value is not zero
+      if (newTotal > 0) {
+        setMaxTokenValue(newTotal);
+      }
+    }
+  }, [activeServiceInfo]);
+
   if (error) {
     return (
       <div className="app-error">
@@ -179,6 +197,14 @@ export const App: React.FC = () => {
 
   return (
     <div className="claude-chat-app">
+      <ControlPanel 
+        sessions={sessions}
+        onNewSession={handleCreateOneShootSession}
+        onToggleRawMonitor={toggleRawMonitor}
+        canCreateNewSession={canCreateNewSession}
+        isRawMonitorActive={isRawMonitorActive}
+      />
+      
       <TabBar
         sessions={sessions}
         activeSessionId={activeSessionId}
@@ -188,12 +214,7 @@ export const App: React.FC = () => {
         onToggleRawMonitor={toggleRawMonitor}
         canCreateNewSession={canCreateNewSession}
         isLoading={isLoading}
-        cacheReadTokens={(() => {
-          const cacheCreation = activeServiceInfo?.usage.cache_creation_input_tokens || 0;
-          const cacheRead = activeServiceInfo?.usage.cache_read_input_tokens || 0;
-          const total = cacheCreation + cacheRead;
-          return total;
-        })()}
+        cacheReadTokens={maxTokenValue}
         isRawMonitorActive={isRawMonitorActive}
       />
       

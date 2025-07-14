@@ -349,20 +349,29 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--vscode-input-background);
-  border-top: 2px solid var(--vscode-descriptionForeground);
+  background: var(--vscode-editor-background);
+  border-top: 1px solid var(--vscode-widget-border);
+  border-bottom: 1px solid var(--vscode-widget-border);
   z-index: 100;
   font-family: var(--vscode-font-family);
   transition: all 0.3s ease;
+  padding: 8px 16px; /* Добавляем padding для контейнера, как у messages-container */
 }
 
 .compact-status-bar {
   display: flex;
   align-items: center;
+  justify-content: flex-start; /* Выравнивание по левому краю */
   gap: 8px;
-  padding: 4px 12px;
-  font-size: 9px;
-  min-height: 20px;
+  padding: 8px 12px; /* Увеличенный padding для двух строк */
+  font-size: 12px;
+  min-height: 44px; /* Удвоенная высота для двух строк */
+  background-color: var(--vscode-button-secondaryBackground); /* Стиль как у кнопки + Session */
+  border: 1px solid var(--vscode-button-border, transparent);
+  border-radius: 2px; /* Стиль кнопки */
+  margin: 0;
+  margin-right: auto; /* Прижимаем к левому краю */
+  max-width: 90%; /* Такая же ширина как у плашки ассистента */
 }
 
 /* 🎨 Улучшенная точка состояния с яркой анимацией */
@@ -432,12 +441,16 @@
 
 /* Статусный текст */
 .status-text {
-  font-size: 10px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: normal;
   flex-shrink: 0;
-  padding-left: 4px;
+  color: var(--vscode-foreground);
   transition: all 0.3s ease;
-  text-transform: capitalize;
+  line-height: 1.4;
+  word-wrap: break-word;
+  white-space: normal; /* Разрешаем перенос на новую строку */
+  max-width: 100%;
+  text-align: left; /* Выравнивание текста по левому краю */
 }
 
 .status-text.status-processing {
@@ -452,6 +465,11 @@
 .status-text.status-ready {
   color: var(--vscode-terminal-ansiGreen);
   font-style: italic;
+}
+
+/* Зеленый цвет для "Assistant Ready For Next Task" - такой же как в индикаторе токенов */
+.status-text.ready-text {
+  color: #00ff00;
 }
 
 .status-text.status-error {
@@ -513,4 +531,42 @@
   .status-text.status-processing {
     animation: none !important;
   }
+}
+
+/* Пульсация для активных статусов */
+.compact-status-bar.pulsing {
+  animation: status-pulsing 1.5s ease-in-out infinite;
+}
+
+@keyframes status-pulsing {
+  0%, 100% { 
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% { 
+    opacity: 0.85;
+    transform: scale(0.98);
+  }
+}
+
+/* Бегущая строка для длинных текстов */
+.status-text.marquee {
+  display: inline-block;
+  padding-left: 100%;
+  animation: marquee 15s linear infinite;
+}
+
+@keyframes marquee {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(-100%, 0);
+  }
+}
+
+/* Контейнер для бегущей строки */
+.compact-status-bar:has(.status-text.marquee) {
+  overflow: hidden;
+  max-width: 100%;
 }

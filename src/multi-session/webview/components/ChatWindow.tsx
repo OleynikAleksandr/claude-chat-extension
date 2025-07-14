@@ -110,13 +110,11 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onExecuteSla
     // Handle slash commands
     const isSlashCommand = newMessage.startsWith('/');
     
-    console.log('Message changed:', newMessage, 'isSlashCommand:', isSlashCommand);
     
     if (isSlashCommand && newMessage.length >= 1) {
       // Extract the command part (everything after /)
       const commandPart = newMessage.slice(1);
       
-      console.log('Showing palette with commandPart:', commandPart);
       
       // Calculate position for command palette (show above input)
       if (inputContainerRef.current && textareaRef.current) {
@@ -126,11 +124,9 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onExecuteSla
           left: rect.left
         };
         
-        console.log('Position calculated:', position);
         slashCommands.showPalette(commandPart, position);
       }
     } else {
-      console.log('Hiding palette');
       slashCommands.hidePalette();
     }
   };
@@ -153,14 +149,14 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSendMessage, onExecuteSla
     handleTextareaResize();
   }, [message]);
 
-  // Auto-focus когда поле не заблокировано
+  // Auto-focus when field is not blocked
   useEffect(() => {
     if (!disabled && textareaRef.current) {
       textareaRef.current.focus();
     }
   }, [disabled]);
 
-  // Auto-focus мгновенно когда статус меняется на completed
+  // Auto-focus immediately when status changes to completed
   useEffect(() => {
     if (activeServiceInfo?.status === 'completed' && !disabled && textareaRef.current) {
       textareaRef.current.focus();
@@ -204,15 +200,19 @@ const EmptyState: React.FC<{ onCreateSession: () => void }> = ({ onCreateSession
   <div className="empty-state">
     <h3>Claude Chat Extension</h3>
     <div className="instructions">
-      <p className="success">✅ <strong>NEW in v0.6.5:</strong> Full bidirectional communication - see Claude's responses directly in the extension!</p>
-      <p><strong>How to use the extension:</strong></p>
+      <p className="success">✅ <strong>NEW in v0.12.16:</strong> OneShoot architecture with 91% cost savings and real-time tool monitoring!</p>
+      <p><strong>Key Features:</strong></p>
       <ul>
-        <li>🆕 <strong>New Session</strong> — creates a new terminal and automatically starts Claude Code</li>
-        <li>💬 <strong>Chat</strong> — interactive conversation with Claude, responses appear in real-time</li>
-        <li>🔄 <strong>Multi-Session</strong> — work with two sessions simultaneously</li>
-        <li>📝 <strong>Switching</strong> — click tabs to change active session</li>
+        <li>🚀 <strong>OneShoot Mode</strong> — Efficient single-request architecture using <code>claude --print --resume</code> for each message</li>
+        <li>💰 <strong>91% Cost Reduction</strong> — Smart session caching dramatically reduces API token usage</li>
+        <li>🔧 <strong>Real-time Tool Monitoring</strong> — See exactly what tools Claude is using (Read, Write, Bash, etc.) with live status updates</li>
+        <li>📊 <strong>Token Usage Tracking</strong> — Visual progress bar shows input/output token consumption in real-time</li>
+        <li>💬 <strong>Multi-Session Support</strong> — Work with multiple Claude sessions simultaneously, each with its own context</li>
+        <li>🔄 <strong>Streaming Responses</strong> — See Claude's responses character-by-character as they're generated</li>
+        <li>📁 <strong>Full File System Access</strong> — Claude can read, write, and modify files in your workspace</li>
+        <li>⚡ <strong>Instant Session Switching</strong> — Click tabs to instantly switch between active sessions</li>
       </ul>
-      <p className="tip">💡 <strong>Tip:</strong> Click "+ New Session" above to get started</p>
+      <p className="tip">💡 <strong>Tip:</strong> Click "+ New Session" above to start chatting with Claude</p>
     </div>
   </div>
 );
@@ -290,7 +290,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           <div className="no-messages">
             <div className="welcome-message">
               <h4>Welcome to {session.name}! 👋</h4>
-              <p>Start a conversation with Claude Code. Experience real-time bidirectional communication!</p>
+              <p>Start a conversation with Claude Code. This session uses efficient OneShoot architecture with session caching.</p>
             </div>
           </div>
         ) : (
@@ -336,13 +336,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* 🎨 ServiceInfoBlock закреплён к нижнему колонтитулу */}
-      {activeServiceInfo && (
-        <ServiceInfoBlock 
-          key={`${activeServiceInfo.timestamp}-${activeServiceInfo.status}`}
-          serviceInfo={activeServiceInfo}
-          onUpdate={onServiceInfoUpdate}
-        />
-      )}
+      <ServiceInfoBlock 
+        serviceInfo={activeServiceInfo || { 
+          id: 'default',
+          type: 'service' as const,
+          sessionId: session?.id || '',
+          timestamp: new Date(), 
+          status: 'completed' as const,
+          rawJson: undefined, // Changed from null to undefined to show default "Ready" state
+          toolUse: [],
+          usage: {
+            input_tokens: 0,
+            output_tokens: 0
+          },
+          thinking: ''
+        }}
+        onUpdate={onServiceInfoUpdate}
+      />
 
       <MessageInput
         onSendMessage={handleSendMessage}

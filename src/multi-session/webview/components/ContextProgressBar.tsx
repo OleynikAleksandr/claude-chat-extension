@@ -10,12 +10,12 @@ interface ContextProgressBarProps {
   cacheReadTokens: number;
   maxTokens?: number; // Default: 155k (effective Claude Code limit)
   className?: string;
-  messageCount?: number; // Количество сообщений в сессии
+  messageCount?: number; // Number of messages in session
 }
 
 export const ContextProgressBar: React.FC<ContextProgressBarProps> = ({
   cacheReadTokens,
-  maxTokens = 155000, // 155k effective limit (по результатам тестирования)
+  maxTokens = 155000, // 155k effective limit (from testing results)
   className = '',
   messageCount = 0
 }) => {

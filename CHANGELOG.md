@@ -5,6 +5,214 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.12.16] - 2025-01-14
+
+### 🎯 Visual Polish & Animations
+
+#### Status Bar Color Consistency
+- **Exact color match** - "Assistant Ready For Next Task" now uses `#00ff00`
+- **Unified green theme** - Matches token progress bar color perfectly
+- **Visual harmony** - Consistent color scheme across all components
+
+#### Token Progress Animation
+- **Smooth initial growth** - Bar animates from 0% when tokens first appear
+- **Elegant transitions** - 0.6s cubic-bezier easing for natural motion
+- **Continuous flow** - Smooth animations between all token count changes
+- **Professional polish** - No more jarring jumps in the progress indicator
+
+## [0.12.15] - 2025-01-14
+
+### 🎯 Enhanced Status Bar Design
+
+#### Visual Improvements
+- **Double height status bar** - Increased height to 44px for better readability
+- **Assistant-style layout** - Matches chat message appearance with 90% width and left alignment
+- **Consistent styling** - Uses same background color and opacity as assistant messages
+- **Two-line support** - Status text can now wrap to second line
+
+#### Smart Path Truncation
+- **Middle truncation** - Long paths show start and filename with "..." in middle
+- **Preserved context** - Always shows beginning of path and complete filename
+- **80 character limit** - Ensures readability across different screen sizes
+- **Intelligent breaking** - Maintains most important path information
+
+## [0.12.14] - 2025-01-14
+
+### 🎯 Fixed Status Bar Animation
+
+#### Continuous Pulsing for Tools
+- **Fixed animation logic** - Tool statuses now continuously pulse while displayed
+- **Persistent animation** - Pulsing continues even when showing last used tool
+- **Clear visual feedback** - Only "Assistant Ready For Next Task" appears without animation
+- **Better state distinction** - Easy to see when assistant is working vs ready
+
+## [0.12.13] - 2025-01-14
+
+### 🎯 Status Bar Ready Message
+
+#### Assistant Ready State
+- **Clear ready indicator** - Now shows "Assistant Ready For Next Task" when waiting for user input
+- **Fixed result handling** - Properly handles `type: "result"` messages from Claude
+- **No tool persistence** - Stops showing the last tool when assistant is ready for next task
+- **Static display** - Ready message appears without pulsing animation
+
+## [0.12.8] - 2025-01-14
+
+### 🎯 Complete Status Bar Overhaul
+
+#### Eliminated All Generic Messages
+- **No more "Ready"** - Removed the default "Ready" text that was overwriting tool statuses
+- **No empty states** - Status bar now hides completely when there's nothing to show
+- **Pure tool focus** - Only shows actual tool usage, no placeholder text
+
+#### Technical Improvements
+- **useRef for persistence** - Switched from useState to useRef to avoid re-render issues
+- **Empty string default** - Last tool status starts empty instead of with default text
+- **Conditional rendering** - Component returns null when there's no status to display
+- **Clean state management** - Removed duplicate state update logic
+
+## [0.12.7] - 2025-01-14
+
+### 🔧 Fixed Service Status Bar Behavior
+
+#### Removed "Assistant Processing" Status
+- **Eliminated generic status** - Removed the uninformative "Assistant Processing" message
+- **Persistent last tool** - Status bar now keeps showing the last used tool instead of defaulting to generic text
+- **Better user feedback** - Users can see what tool was last used even during non-tool operations
+
+#### Improved State Management
+- **Last tool memory** - Component now remembers and displays the last tool that was executed
+- **No pulsing for idle state** - When showing last tool (not actively processing), no pulsing animation
+- **Consistent experience** - Status remains informative throughout the entire session
+
+## [0.12.6] - 2025-01-14
+
+### 🎨 Enhanced Service Status Bar
+
+#### Dynamic Status Display
+- **Real-time context-aware updates** - Status bar now shows specific actions based on Claude's JSON messages
+- **"Assistant Ready For Next Task"** - Displayed only when `type: "result"` is received (static text)
+- **"Reading user request"** - When `type: "system"` is detected
+- **"Sending requested information"** - When `type: "tool_result"` is detected
+- **Tool-specific statuses** - Shows tool name with file/path/url for all Claude tools
+
+#### Visual Enhancements
+- **Pulsating animation** - Status text pulses while assistant is processing
+- **Static ready state** - "Assistant Ready For Next Task" remains static
+- **Marquee scrolling** - Long file paths scroll horizontally for better visibility
+- **Persistent status** - Previous status remains visible until next update arrives
+
+#### Technical Improvements
+- **Fixed status bar updates** - All message types now properly trigger status updates
+- **Removed default rawJson** - Prevents overwriting real status data
+- **Better tool detection** - Supports all Claude tools including Task, Bash, Grep, etc.
+
+## [0.12.5] - 2025-01-14
+
+### 🎨 Service Status Bar Improvements
+
+#### Service Status Bar Redesign
+- **Unified design** - Bottom status bar now matches the style of top control panel
+- **Button-like appearance** - Status bar styled as a centered button element
+- **Consistent sizing** - Same height (22px) and padding as control buttons
+- **Matching colors** - Uses same secondary background color as other controls
+
+#### Always Visible Status
+- **Persistent display** - Status bar now shows immediately when session starts
+- **Default state** - Shows "Ready" when no active operations
+- **Better UX** - Users always see current assistant status
+
+#### Visual Consistency
+- **Same font size** - Status text uses 12px font like all other UI elements
+- **Border styling** - Matches the widget border style from control panel
+- **Centered layout** - Status button centered for cleaner appearance
+
+## [0.12.4] - 2025-01-14
+
+### 🎨 UI Refinements
+
+#### Button and Control Sizing
+- **Compact button design** - Reduced height from 28px to 22px
+- **Minimal padding** - Changed from 5px 14px to 2px 8px
+- **Unified font size** - All UI elements now use 12px font
+
+#### Visual Consistency
+- **Control panel height** - Reduced from 38px to 30px for better proportions
+- **Tab bar adjustments** - Reduced height to 28px, tabs to 24px
+- **Session name font** - Increased from 11px to 12px to match buttons
+
+#### Close Button Enhancement
+- **True red color** - Changed from orange-tinted #ff5f57 to pure red #ff0000
+- **Better contrast** - White cross icon on red background when hovering
+- **Maintained macOS style** - Gray default, red circle on hover
+
+#### Overall Improvements
+- **Unified typography** - All interface elements now use consistent 12px font size
+- **Better proportions** - Reduced overall UI height while maintaining readability
+- **Cleaner appearance** - Minimal padding creates more content space
+
+## [0.12.3] - 2025-01-14
+
+### 🎨 UI/UX Improvements
+
+#### New Control Panel
+- Moved all control buttons to a dedicated control panel above the tab bar
+- **Raw Data** button (formerly Monitor) - now on the left side
+- **+ Session** button (formerly OneShoot) - now on the right side  
+- Session counter (1/2) - displayed on the right side next to + Session button
+
+#### Simplified Button Styling
+- Removed all decorative elements (gradients, shadows)
+- Clean, minimal button design matching VS Code's native UI
+- Consistent button heights across the control panel
+
+#### Session Naming Updates
+- Changed session names from "OneShoot 1/2" to "Session 1/2"
+- More intuitive naming for users
+
+#### macOS-Style Close Button
+- Redesigned tab close button in macOS style
+- Gray by default, transforms to red circle on hover
+- Increased size for better accessibility
+
+### 🐛 Bug Fixes
+
+#### Token Counter Fix
+- Fixed issue where token counter would get stuck on high values when switching sessions
+- Token counter now properly updates to reflect current session's actual token usage
+- Removed restriction that prevented token count from decreasing
+
+## [0.12.2] - 2025-01-14
+
+### Added
+- New ControlPanel component for additional UI controls
+- Token indicator stability improvements
+
+### Fixed
+- Token indicator no longer jumps to zero or shows decreasing values
+
+## [0.12.1] - 2025-01-14
+
+### 🧹 Patch Release - Optimization & Cleanup
+
+This patch release focuses on code optimization and repository cleanup following the major v0.12.0 release.
+
+### Changed
+- **Cleaned codebase** - Removed debugging comments and emoji
+- **Optimized dependencies** - Removed unused ws and @types/ws packages
+- **Archived session reports** - Sessions 027-070 moved to archive
+- **Repository cleanup** - Removed old VSIX files and empty directories
+
+### Removed
+- **12 old VSIX files** - Kept only the latest version
+- **44 session reports** - Archived to project_history_archive.md
+- **5 empty directories** - Cleaned up src/ structure
+- **Unused dependencies** - ws and @types/ws
+
+### Documentation
+- **Updated project_history_archive.md** - Added sessions 027-070 summary
+- **Session reports** - Kept only recent 4 reports (071-074)
+
 ## [0.12.0] - 2025-01-14
 
 ### 🎉 Major Release - OneShoot-Only Architecture

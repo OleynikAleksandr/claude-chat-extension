@@ -39,8 +39,11 @@ If you found a bug or want to suggest a new feature:
 
 2. **Development and testing**
    ```bash
-   # Compile in watch mode
+   # Compile extension in watch mode
    npm run watch
+   
+   # Compile webview in watch mode (in separate terminal)
+   npm run watch:webview
    
    # Launch Extension Development Host
    # Press F5 in VS Code or use Debug panel
@@ -51,11 +54,11 @@ If you found a bug or want to suggest a new feature:
    # Linting
    npm run lint
    
-   # Compilation
-   npm run compile
+   # Build everything
+   npm run build
    
    # Create VSIX for testing
-   npx vsce package
+   vsce package
    ```
 
 ### Code Style
@@ -121,31 +124,37 @@ docs(readme): update installation instructions
 ### Project Structure
 ```
 src/
-├── extension.ts          # Main extension entry point
-├── terminalManager.ts    # Terminal operations and Claude CLI detection  
-├── types.ts              # TypeScript interfaces and types
-media/
-├── main.js              # Webview JavaScript
-├── main.css             # Webview styles
-└── ...
+├── extension.ts                    # Main extension entry point
+├── multi-session/
+│   ├── managers/
+│   │   ├── OneShootSessionManager.ts      # Main session manager
+│   │   └── OneShootProcessSessionManager.ts # Process management
+│   ├── providers/
+│   │   └── MultiSessionProvider.ts        # Webview provider
+│   ├── webview/
+│   │   └── components/                     # React components
+│   └── types/
+│       └── Session.ts                      # Type definitions
+└── debug/
+    └── RawJsonOutputChannel.ts             # Debug output channel
 ```
 
 ### Key Principles
 
-1. **Separation of Concerns**
-   - TerminalManager: only terminal operations
-   - Extension: coordination and webview management
-   - Types: centralized typing
+1. **OneShoot Architecture**
+   - Each message spawns a new process with `claude --print --resume`
+   - 91% cost reduction through session caching
+   - Clean process lifecycle with automatic cleanup
 
-2. **Error Handling**
-   - Always return `TerminalExecutionResult`
-   - Use typed error codes
-   - Comprehensive logging for debugging
+2. **React-based Webview**
+   - TypeScript React components for UI
+   - Real-time updates via postMessage API
+   - Separate webpack build for webview bundle
 
-3. **User Experience**
-   - Minimize confirmation dialogs
-   - Fallback mechanisms should work automatically
-   - Informative error messages
+3. **Multi-Session Management**
+   - Independent Claude sessions with separate contexts
+   - Maximum 2 concurrent sessions (configurable)
+   - Persistent session state across VS Code restarts
 
 ### Testing Guidelines
 
@@ -168,8 +177,9 @@ Help → Toggle Developer Tools → Console
 ### Common Issues
 
 1. **CSP Violations**: Use only external styles and scripts
-2. **Terminal Detection**: Check `detectClaudeCli()` logs
-3. **Message Sending**: Ensure `addNewLine: true`
+2. **Process Management**: Check OneShoot process spawning logs
+3. **Session State**: Verify session status transitions
+4. **Webview Communication**: Monitor postMessage events
 
 ## 📋 Issue Templates
 

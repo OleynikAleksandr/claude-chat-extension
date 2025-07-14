@@ -1,8 +1,8 @@
 {
   "name": "claude-chat",
   "displayName": "Claude Chat",
-  "description": "Enhanced VS Code extension for bidirectional real-time communication with Claude Code CLI featuring live service information monitoring",
-  "version": "0.12.0",
+  "description": "VS Code extension for Claude Code CLI with OneShoot architecture (91% cost savings), real-time tool monitoring, multi-session support, and streaming responses",
+  "version": "0.12.16",
   "publisher": "aleksandr-oleynik",
   "author": {
     "name": "Aleksandr Oleynik",
@@ -42,11 +42,6 @@
         "command": "claudeChat.openChat",
         "title": "Claude Chat: Open Chat Panel",
         "category": "Claude Chat"
-      },
-      {
-        "command": "claudeChat.openMultiSession",
-        "title": "Claude Chat: Open Multi-Session Panel",
-        "category": "Claude Chat"
       }
     ],
     "viewsContainers": {
@@ -74,21 +69,6 @@
         "command": "claudeChat.openChat",
         "key": "ctrl+shift+c",
         "mac": "cmd+shift+c"
-      },
-      {
-        "command": "claudeChat.openMultiSession",
-        "key": "ctrl+shift+m",
-        "mac": "cmd+shift+m"
-      },
-      {
-        "command": "claudeChat.createSession",
-        "key": "ctrl+shift+n",
-        "mac": "cmd+shift+n"
-      },
-      {
-        "command": "claudeChat.switchSession",
-        "key": "ctrl+shift+s",
-        "mac": "cmd+shift+s"
       }
     ]
   },
@@ -124,9 +104,5 @@
     "typescript": "^5.3.3",
     "webpack": "^5.99.9",
     "webpack-cli": "^6.0.1"
-  },
-  "dependencies": {
-    "@types/ws": "^8.18.1",
-    "ws": "^8.18.3"
   }
 }

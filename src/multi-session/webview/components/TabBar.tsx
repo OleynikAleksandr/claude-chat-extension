@@ -104,34 +104,9 @@ export const TabBar: React.FC<TabBarProps> = ({
             />
           ))}
         </div>
-        
-        <div className="tab-actions">
-          {onToggleRawMonitor && (
-            <button 
-              className={`new-session-button monitor ${isRawMonitorActive ? 'active' : ''}`}
-              onClick={onToggleRawMonitor}
-              title={isRawMonitorActive ? 'Stop Raw JSON Monitor' : 'Start Raw JSON Monitor'}
-            >
-              {isRawMonitorActive ? '🔴 Monitor' : '📡 Monitor'}
-            </button>
-          )}
-          <button 
-            className={`new-session-button process ${!canCreateNewSession ? 'disabled' : ''}`}
-            onClick={onNewSession}
-            disabled={!canCreateNewSession || isLoading}
-            title={canCreateNewSession ? 'Create new OneShoot session' : 'Maximum sessions reached'}
-          >
-            {isLoading ? '🔄' : '🚀 OneShoot'}
-          </button>
-          
-          
-          <div className="session-count">
-            {sessions.length}/2
-          </div>
-        </div>
       </div>
       
-      {/* Context Progress Bar - показывать для активной сессии */}
+      {/* Context Progress Bar - show for active session */}
       {activeSessionId && (() => {
         const activeSession = sessions.find(session => session.id === activeSessionId);
         

@@ -14,9 +14,7 @@ export class OneShootSessionManager {
   private activeSessionId: string | null = null;
   private readonly maxSessions = 2;
   private readonly messageHistoryLimit = 100;
-  // 🔧 Terminal visibility state
   private showTerminal: boolean = false;
-  // 📡 Raw JSON Output Channel for debugging
   private rawJsonOutputChannel: RawJsonOutputChannel | null = null;
   
   // Event callbacks
@@ -162,7 +160,7 @@ export class OneShootSessionManager {
       throw new Error(`Session ${sessionId} is not ready (status: ${session.status})`);
     }
 
-    this.outputChannel.appendLine(`📤 Sending message to session ${sessionId}: ${message}`);
+    this.outputChannel.appendLine(`Sending message to session ${sessionId}: ${message}`);
 
     // Add user message to history
     const messageObj: Message = {
@@ -176,7 +174,6 @@ export class OneShootSessionManager {
     session.messages.push(messageObj);
     this.trimMessageHistory(session);
 
-    // 🚀 Proactive token initialization removed - only OneShoot mode now
 
     // Fire event for user message
     this.fireEvent('messageReceived', sessionId, messageObj);
@@ -186,9 +183,9 @@ export class OneShootSessionManager {
       throw new Error(`OneShoot session not properly initialized`);
     }
     
-    // **ПОТОК 1: Extension → OneShoot Process (Streaming)**
+    // Extension → OneShoot Process (Streaming)
     try {
-      this.outputChannel.appendLine(`📤 Starting OneShoot message for session: ${session.name}`);
+      this.outputChannel.appendLine(`Starting OneShoot message for session: ${session.name}`);
       
       // Setup streaming data handler
       session.oneShootSession.onData = (jsonLine: string) => {
@@ -197,20 +194,20 @@ export class OneShootSessionManager {
       
       // Start streaming execution
       await session.oneShootSession.sendMessage(message);
-      this.outputChannel.appendLine(`✅ OneShoot message completed for session: ${session.name}`);
+      this.outputChannel.appendLine(`OneShoot message completed for session: ${session.name}`);
       
-      // 🎯 ИСПРАВЛЕНИЕ: Завершить все оставшиеся активные инструменты после завершения OneShoot
+      // Complete all pending tools after OneShoot completion
       this.completeAllPendingToolsForOneShoot(sessionId);
       
     } catch (error) {
-      this.outputChannel.appendLine(`❌ OneShoot sendMessage error: ${error}`);
+      this.outputChannel.appendLine(`OneShoot sendMessage error: ${error}`);
       // Error is already logged, OneShoot errors are handled internally
     }
       
     // Update last active time
     session.lastActiveAt = new Date();
 
-    this.outputChannel.appendLine(`✅ Message sent to session: ${session.name}`);
+    this.outputChannel.appendLine(`Message sent to session: ${session.name}`);
   }
 
   async executeSlashCommand(sessionId: string, slashCommand: string): Promise<void> {
@@ -223,7 +220,7 @@ export class OneShootSessionManager {
       throw new Error(`Session ${sessionId} is not ready (status: ${session.status})`);
     }
 
-    this.outputChannel.appendLine(`⚡ Executing slash command in session ${sessionId}: ${slashCommand}`);
+    this.outputChannel.appendLine(`Executing slash command in session ${sessionId}: ${slashCommand}`);
 
     if (!session.oneShootSession) {
       throw new Error(`OneShoot session not properly initialized`);
@@ -235,32 +232,9 @@ export class OneShootSessionManager {
     // Update last active time
     session.lastActiveAt = new Date();
 
-    this.outputChannel.appendLine(`✅ Slash command executed in session: ${session.name}`);
+    this.outputChannel.appendLine(`Slash command executed in session: ${session.name}`);
   }
 
-  /**
-   * Обработка ответа пользователя на интерактивную команду
-   */
-  async handleInteractiveResponse(response: any): Promise<void> {
-    const session = this.sessions.get(response.sessionId);
-    if (!session) {
-      throw new Error(`Session ${response.sessionId} not found`);
-    }
-
-    this.outputChannel.appendLine(`📝 Handling interactive response for session ${response.sessionId}: ${response.selection}`);
-
-    // OneShoot mode doesn't support interactive responses
-    this.outputChannel.appendLine(`⚠️ Interactive responses not supported in OneShoot mode`);
-    
-    // Interactive responses removed - only OneShoot mode now
-    this.outputChannel.appendLine(`⚠️ Interactive responses not supported in OneShoot-only mode`);
-  }
-
-  /**
-   * **ПОТОК 2: Terminal → Extension**
-   * Обработка ответов, полученных от Claude Code через JSONL мониторинг
-   * ⚠️ ТОЛЬКО для терминальных и процессных сессий, НЕ для OneShoot
-   */
 
   // Getters
   getSession(sessionId: string): Session | null {
@@ -324,11 +298,11 @@ export class OneShootSessionManager {
       
       diagnostics.push(`  • ${session.name} (${sessionId}):`);
       diagnostics.push(`    - Status: ${session.status}`);
-      diagnostics.push(`    - Healthy: ${isHealthy ? '✅' : '❌'}`);
+      diagnostics.push(`    - Healthy: ${isHealthy ? 'Yes' : 'No'}`);
       
       if (session.oneShootSession) {
         diagnostics.push(`    - OneShoot Session ID: ${session.oneShootSession.getClaudeSessionId() || 'Not set'}`);
-        diagnostics.push(`    - OneShoot Alive: ${session.oneShootSession.isAlive() ? '✅' : '❌'}`);
+        diagnostics.push(`    - OneShoot Alive: ${session.oneShootSession.isAlive() ? 'Yes' : 'No'}`);
       }
       
       diagnostics.push(`    - Messages: ${session.messages.length}`);
@@ -452,11 +426,11 @@ export class OneShootSessionManager {
   private handleOneShootData(sessionId: string, data: string): void {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      this.outputChannel.appendLine(`⚠️ Received OneShoot data for unknown session: ${sessionId}`);
+      this.outputChannel.appendLine(`Received OneShoot data for unknown session: ${sessionId}`);
       return;
     }
 
-    this.outputChannel.appendLine(`📨 OneShoot data for session ${session.name}: ${data.substring(0, 100)}...`);
+    this.outputChannel.appendLine(`OneShoot data for session ${session.name}: ${data.substring(0, 100)}...`);
 
     // OneShoot data is handled through sendMessage responses, not streaming
     // This is mainly for debugging
@@ -468,7 +442,7 @@ export class OneShootSessionManager {
       return;
     }
 
-    this.outputChannel.appendLine(`💀 OneShoot session exited: ${session.name}, code=${code}, signal=${signal}`);
+    this.outputChannel.appendLine(`OneShoot session exited: ${session.name}, code=${code}, signal=${signal}`);
     
     // OneShoot processes are expected to exit after each message
     // This is normal behavior, not an error
@@ -480,12 +454,12 @@ export class OneShootSessionManager {
       return;
     }
 
-    this.outputChannel.appendLine(`❌ OneShoot session error: ${session.name}, error=${error.message}`);
+    this.outputChannel.appendLine(`OneShoot session error: ${session.name}, error=${error.message}`);
     
-    // 🚫 Special handling for context limit errors
+    // Special handling for context limit errors
     if (error.name === 'ContextLimitError') {
       // Send user-friendly message instead of generic error
-      this.outputChannel.appendLine(`🚫 Context limit reached - sending user-friendly message`);
+      this.outputChannel.appendLine(`Context limit reached - sending user-friendly message`);
       
       const contextLimitMessage: Message = {
         id: this.generateMessageId(),
@@ -515,7 +489,7 @@ export class OneShootSessionManager {
       return;
     }
 
-    this.outputChannel.appendLine(`🔄 OneShoot interactive prompt: ${session.name}, prompt=${prompt}`);
+    this.outputChannel.appendLine(`OneShoot interactive prompt: ${session.name}, prompt=${prompt}`);
     
     // Fire interactive input required event
     if (this.onInteractiveInputRequiredCallback) {
@@ -529,43 +503,36 @@ export class OneShootSessionManager {
       return;
     }
 
-    this.outputChannel.appendLine(`📊 OneShoot status bar update: ${json.type}`);
+    this.outputChannel.appendLine(`OneShoot status bar update: ${json.type}`);
     
     // Save last result JSON for later use
     if (json.type === 'result') {
       (session as any).lastResultJson = json;
-      this.outputChannel.appendLine(`💾 Saved result JSON for session ${sessionId}`);
+      this.outputChannel.appendLine(`Saved result JSON for session ${sessionId}`);
     }
     
-    // 🎯 ВАЖНО: НЕ отправляем serviceInfoReceived для каждого JSON сообщения
-    // Это перезаписывало реальные usage данные пустыми значениями
-    // Usage данные обрабатываются отдельно в handleOneShootUsageData
+    // Send serviceInfoReceived for ALL message types to update status bar
+    // This ensures we see system, tool_result, assistant with tool_use, and result messages
+    const serviceMessage: ServiceMessage = {
+      id: this.generateMessageId(),
+      type: 'service',
+      sessionId: sessionId,
+      timestamp: new Date(),
+      toolUse: [],
+      thinking: '',
+      usage: {
+        input_tokens: 0,
+        output_tokens: 0,
+        // Use saved token values, not zeros
+        cache_creation_input_tokens: session.lastCacheTokens?.creation || 0,
+        cache_read_input_tokens: session.lastCacheTokens?.read || 0
+      },
+      status: json.type === 'result' ? 'completed' : 'processing',
+      rawJson: json // Pass the raw JSON for status bar
+    };
     
-    // Отправляем serviceInfoReceived ТОЛЬКО для специфических типов сообщений,
-    // которые требуют обновления статус-бара (например, tool_use)
-    if (json.type === 'tool_use' || json.type === 'tool_result') {
-      // Используем сохраненные значения токенов из сессии
-      const serviceMessage: ServiceMessage = {
-        id: this.generateMessageId(),
-        type: 'service',
-        sessionId: sessionId,
-        timestamp: new Date(),
-        toolUse: [],
-        thinking: '',
-        usage: {
-          input_tokens: 0,
-          output_tokens: 0,
-          // 🎯 ВАЖНО: Используем сохраненные значения токенов, а не нули
-          cache_creation_input_tokens: session.lastCacheTokens?.creation || 0,
-          cache_read_input_tokens: session.lastCacheTokens?.read || 0
-        },
-        status: 'processing',
-        rawJson: json // Pass the raw JSON for status bar
-      };
-      
-      // Fire service info event with raw JSON
-      this.fireEvent('serviceInfoReceived', sessionId, serviceMessage);
-    }
+    // Fire service info event with raw JSON
+    this.fireEvent('serviceInfoReceived', sessionId, serviceMessage);
   }
 
   private handleOneShootStreamingData(sessionId: string, jsonLine: string): void {
@@ -576,7 +543,7 @@ export class OneShootSessionManager {
 
     try {
       const response = JSON.parse(jsonLine) as import('./OneShootProcessSessionManager').ClaudeJsonResponse;
-      this.outputChannel.appendLine(`🔄 Streaming: ${response.type}${response.subtype ? '/' + response.subtype : ''}`);
+      this.outputChannel.appendLine(`Streaming: ${response.type}${response.subtype ? '/' + response.subtype : ''}`);
       
       
       if (response.type === 'assistant' && response.message) {
@@ -585,20 +552,20 @@ export class OneShootSessionManager {
         this.processToolResultStreaming(sessionId, response);
       }
       
-      // 🎯 ИСПРАВЛЕНИЕ: Обработка usage данных для индикатора токенов OneShoot режима
-      // Usage всегда находится внутри message для assistant сообщений
+      // Handle usage data for OneShoot token indicator
+      // Usage is always inside message for assistant messages
       if (response.type === 'assistant' && response.message && response.message.usage) {
-        this.outputChannel.appendLine(`📊 Usage data found in message: ${JSON.stringify(response.message.usage)}`);
+        this.outputChannel.appendLine(`Usage data found in message: ${JSON.stringify(response.message.usage)}`);
         this.handleOneShootUsageData(sessionId, response.message.usage);
       }
       
     } catch (error) {
-      this.outputChannel.appendLine(`❌ Failed to parse streaming JSON: ${error}`);
+      this.outputChannel.appendLine(`Failed to parse streaming JSON: ${error}`);
     }
   }
 
   /**
-   * 🎯 ИСПРАВЛЕНИЕ: Обработка usage данных для OneShoot режима
+   * Handle usage data for OneShoot mode
    * Service tier validation
    */
   private handleOneShootUsageData(sessionId: string, usage: any): void {
@@ -607,56 +574,56 @@ export class OneShootSessionManager {
       return;
     }
 
-    // Валидация токенов
+    // Token validation
     const validateTokenCount = (value: any): number => {
       return (typeof value === 'number' && !isNaN(value)) ? value : 0;
     };
 
-    // 🎯 ИСПРАВЛЕНО: Передаем ОРИГИНАЛЬНЫЕ значения из Claude API, суммирование будет в UI
+    // Pass ORIGINAL values from Claude API, summing will be done in UI
     const cacheCreationTokens = validateTokenCount(usage.cache_creation_input_tokens);
     const cacheReadTokens = validateTokenCount(usage.cache_read_input_tokens);
     const inputTokens = validateTokenCount(usage.input_tokens);
     const outputTokens = validateTokenCount(usage.output_tokens);
 
-    // 🔧 ВАЖНО: Игнорируем записи с нулевыми токенами (промежуточные записи)
+    // Ignore records with zero tokens (intermediate records)
     if (cacheReadTokens === 0 && cacheCreationTokens === 0 && outputTokens === 0) {
-      this.outputChannel.appendLine(`🔧 Skipping zero-token usage data`);
+      this.outputChannel.appendLine(`Skipping zero-token usage data`);
       return;
     }
 
-    // 🎯 ЗАМЕНА ТОКЕНОВ: Заменяем старые значения новыми
+    // Replace old token values with new ones
     session.lastCacheTokens = {
       creation: cacheCreationTokens,
       read: cacheReadTokens
     };
     const totalCacheTokens = cacheCreationTokens + cacheReadTokens;
-    this.outputChannel.appendLine(`💰 Updated cache tokens: ${totalCacheTokens} (${cacheCreationTokens} creation + ${cacheReadTokens} read)`);
+    this.outputChannel.appendLine(`Updated cache tokens: ${totalCacheTokens} (${cacheCreationTokens} creation + ${cacheReadTokens} read)`);
     
-    // Обновляем сессию в Map
+    // Update session in Map
     this.sessions.set(sessionId, session);
 
-    // Создаем ServiceMessage с usage данными
+    // Create ServiceMessage with usage data
     const serviceMessage: import('../types/Session').ServiceMessage = {
       id: this.generateMessageId(),
       type: 'service',
       sessionId: sessionId,
       timestamp: new Date(),
-      toolUse: [], // Для usage данных инструменты не важны
+      toolUse: [], // Tools not important for usage data
       thinking: '',
       status: 'completed',
       usage: {
         input_tokens: inputTokens,
         output_tokens: outputTokens,
-        // 🎯 ВАЖНО: Передаем последние значения токенов
+        // Pass latest token values
         cache_creation_input_tokens: session.lastCacheTokens?.creation || 0,
         cache_read_input_tokens: session.lastCacheTokens?.read || 0,
         service_tier: usage.service_tier || 'unknown'
       }
     };
 
-    this.outputChannel.appendLine(`🔧 OneShoot usage data: ${cacheCreationTokens} creation + ${cacheReadTokens} read tokens (input: ${inputTokens}, output: ${outputTokens})`);
+    this.outputChannel.appendLine(`OneShoot usage data: ${cacheCreationTokens} creation + ${cacheReadTokens} read tokens (input: ${inputTokens}, output: ${outputTokens})`);
 
-    // Fire event для служебной информации (аналогично терминальному режиму)
+    // Fire event for service information
     this.fireEvent('serviceInfoReceived', sessionId, serviceMessage);
   }
 
@@ -693,7 +660,7 @@ export class OneShootSessionManager {
           
           session.messages.push(toolMessage);
           this.fireEvent('messageReceived', sessionId, toolMessage);
-          this.outputChannel.appendLine(`🔧 Tool started: ${block.name}`);
+          this.outputChannel.appendLine(`Tool started: ${block.name}`);
           
         } else if (block.type === 'text' && block.text?.trim()) {
           // DON'T auto-complete running tools - let them run naturally
@@ -710,7 +677,7 @@ export class OneShootSessionManager {
           
           session.messages.push(textMessage);
           this.fireEvent('messageReceived', sessionId, textMessage);
-          this.outputChannel.appendLine(`💬 Assistant text received`);
+          this.outputChannel.appendLine(`Assistant text received`);
         }
       }
     }
@@ -734,7 +701,7 @@ export class OneShootSessionManager {
       // Remove from pending
       session.pendingTools.delete(toolId);
       
-      this.outputChannel.appendLine(`✅ Tool completed: ${toolMessage.toolInfo.name}`);
+      this.outputChannel.appendLine(`Tool completed: ${toolMessage.toolInfo.name}`);
     }
   }
 
@@ -743,99 +710,99 @@ export class OneShootSessionManager {
   // Tools now complete naturally when they receive actual results
 
   /**
-   * 🎯 ИСПРАВЛЕНИЕ: Завершает все активные инструменты после завершения OneShoot сессии
-   * Это специальная функция только для OneShoot режима - вызывается в конце сессии
+   * FIX: Completes all active tools after OneShoot session completion
+   * This is a special function only for OneShoot mode - called at the end of the session
    */
   private completeAllPendingToolsForOneShoot(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     
-    this.outputChannel.appendLine(`🔍 DEBUG: completeAllPendingToolsForOneShoot called for session ${sessionId}`);
-    this.outputChannel.appendLine(`🔍 DEBUG: session exists: ${!!session}`);
-    this.outputChannel.appendLine(`🔍 DEBUG: session.pendingTools exists: ${!!session?.pendingTools}`);
-    this.outputChannel.appendLine(`🔍 DEBUG: pendingTools size: ${session?.pendingTools?.size || 0}`);
+    this.outputChannel.appendLine(`DEBUG: completeAllPendingToolsForOneShoot called for session ${sessionId}`);
+    this.outputChannel.appendLine(`DEBUG: session exists: ${!!session}`);
+    this.outputChannel.appendLine(`DEBUG: session.pendingTools exists: ${!!session?.pendingTools}`);
+    this.outputChannel.appendLine(`DEBUG: pendingTools size: ${session?.pendingTools?.size || 0}`);
     
     if (!session) {
-      this.outputChannel.appendLine(`⚠️ No session found for ${sessionId}`);
+      this.outputChannel.appendLine(`No session found for ${sessionId}`);
       return;
     }
     
-    // Если pendingTools не существует или пустой, всё равно нужно отправить финальный serviceInfo
+    // If pendingTools doesn't exist or is empty, still need to send final serviceInfo
     if (!session.pendingTools || session.pendingTools.size === 0) {
-      this.outputChannel.appendLine(`📭 No pending tools to complete for ${sessionId}, sending final serviceInfo`);
+      this.outputChannel.appendLine(`No pending tools to complete for ${sessionId}, sending final serviceInfo`);
     } else {
-      this.outputChannel.appendLine(`🔄 OneShoot completed: Finishing ${session.pendingTools.size} remaining tools`);
+      this.outputChannel.appendLine(`OneShoot completed: Finishing ${session.pendingTools.size} remaining tools`);
       
-      // Собираем все инструменты в массив для безопасной итерации
+      // Collect all tools into an array for safe iteration
       const toolsToComplete = Array.from(session.pendingTools.entries());
       
-      // Завершаем все оставшиеся инструменты
+      // Complete all remaining tools
       for (const [toolId, toolMessage] of toolsToComplete) {
-      this.outputChannel.appendLine(`🔍 DEBUG: Processing tool ${toolId}, status: ${toolMessage.toolInfo?.status}`);
+      this.outputChannel.appendLine(`DEBUG: Processing tool ${toolId}, status: ${toolMessage.toolInfo?.status}`);
       
       if (toolMessage.toolInfo && toolMessage.toolInfo.status === 'running') {
         toolMessage.toolInfo.status = 'completed';
         toolMessage.toolInfo.endTime = new Date();
         toolMessage.toolInfo.result = 'Tool completed with OneShoot session';
         
-        // Обновляем UI - добавляем в основной массив сообщений
+        // Update UI - add to main messages array
         const messageIndex = session.messages.findIndex(msg => 
           msg.id === toolMessage.id
         );
         
         if (messageIndex !== -1) {
           session.messages[messageIndex] = toolMessage;
-          this.outputChannel.appendLine(`✅ Updated message in session.messages for tool: ${toolMessage.toolInfo.name}`);
+          this.outputChannel.appendLine(`Updated message in session.messages for tool: ${toolMessage.toolInfo.name}`);
         }
         
-        // Обновляем UI
+        // Update UI
         this.fireEvent('messageReceived', sessionId, toolMessage);
         
-        // Удаляем из pending сразу после обновления UI
+        // Remove from pending immediately after UI update
         session.pendingTools.delete(toolId);
         
-        this.outputChannel.appendLine(`✅ Force-completed and removed tool: ${toolMessage.toolInfo.name}`);
+        this.outputChannel.appendLine(`Force-completed and removed tool: ${toolMessage.toolInfo.name}`);
       } else {
-        // Если инструмент не running, всё равно удаляем из pending
+        // If tool is not running, still remove from pending
         session.pendingTools.delete(toolId);
-        this.outputChannel.appendLine(`🔧 Removed non-running tool: ${toolMessage.toolInfo?.name || 'unknown'}`);
+        this.outputChannel.appendLine(`Removed non-running tool: ${toolMessage.toolInfo?.name || 'unknown'}`);
       }
     }
       
-      this.outputChannel.appendLine(`🧹 All pending tools processed for OneShoot session`);
+      this.outputChannel.appendLine(`All pending tools processed for OneShoot session`);
     }
     
-    // Принудительно обновляем UI
+    // Force UI update
     this.fireEvent('sessionUpdated', sessionId);
-    this.outputChannel.appendLine(`🔄 Fired sessionUpdated event for ${sessionId}`);
+    this.outputChannel.appendLine(`Fired sessionUpdated event for ${sessionId}`);
     
-    // 🔧 ИСПРАВЛЕНИЕ v0.11.28: Используем сохраненный result JSON если есть
-    // Проверяем наличие сохраненного result JSON
+    // FIX v0.11.28: Use saved result JSON if available
+    // Check for saved result JSON
     const lastResultJson = (session as any).lastResultJson;
     
     if (lastResultJson && lastResultJson.type === 'result') {
-      // Если есть сохраненный result JSON, используем его
+      // If there's a saved result JSON, use it
       const finalServiceInfo: ServiceMessage = {
         id: `svc_${Date.now()}_final`,
         type: 'service',
         sessionId: sessionId,
         timestamp: new Date(),
-        toolUse: [], // Все инструменты завершены и удалены из pending
+        toolUse: [], // All tools completed and removed from pending
         thinking: '',
         usage: {
           input_tokens: 0,
           output_tokens: 0,
-          // 🎯 ВАЖНО: Передаем последние значения токенов
+          // Pass latest token values
           cache_creation_input_tokens: session.lastCacheTokens?.creation || 0,
           cache_read_input_tokens: session.lastCacheTokens?.read || 0
         },
         status: 'completed',
-        rawJson: lastResultJson // Используем сохраненный result JSON
+        rawJson: lastResultJson // Use saved result JSON
       };
       
-      this.outputChannel.appendLine(`🔧 Sending final service info with saved result JSON`);
+      this.outputChannel.appendLine(`Sending final service info with saved result JSON`);
       this.fireEvent('serviceInfoReceived', sessionId, finalServiceInfo);
     } else {
-      // Если нет result JSON, отправляем обычное сообщение
+      // If no result JSON, send regular message
       const finalServiceInfo: ServiceMessage = {
         id: `svc_${Date.now()}_final`,
         type: 'service',
@@ -846,14 +813,14 @@ export class OneShootSessionManager {
         usage: {
           input_tokens: 0,
           output_tokens: 0,
-          // 🎯 ВАЖНО: Передаем последние значения токенов
+          // Pass latest token values
           cache_creation_input_tokens: session.lastCacheTokens?.creation || 0,
           cache_read_input_tokens: session.lastCacheTokens?.read || 0
         },
         status: 'completed'
       };
       
-      this.outputChannel.appendLine(`🔧 Sending final service info: status = completed, no result JSON`);
+      this.outputChannel.appendLine(`Sending final service info: status = completed, no result JSON`);
       this.fireEvent('serviceInfoReceived', sessionId, finalServiceInfo);
     }
   }

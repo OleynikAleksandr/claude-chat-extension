@@ -34,8 +34,19 @@
   height: 100%;
   background: #00ff00;
   border-radius: 3px;
-  transition: width 0.3s ease;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+  animation: growFromLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes growFromLeft {
+  from {
+    width: 0%;
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 /* Warning zone: 80-100% with gradient */
@@ -50,7 +61,7 @@
     #ff0000 100%
   );
   border-radius: 3px;
-  transition: width 0.3s ease;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
 }
 
