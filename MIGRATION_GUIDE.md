@@ -2,7 +2,7 @@
 
 ## Overview
 
-ClaudeCodeBridge v0.12.0 is a major release that simplifies the extension architecture to use **OneShoot-only mode**. This guide will help you migrate from previous versions.
+Claude Chat Extension v0.12.0 is a major release that simplifies the extension architecture to use **OneShoot-only mode**. This guide will help you migrate from previous versions.
 
 ## What's Changed
 
@@ -126,10 +126,10 @@ The following legacy commands have been removed:
 
 ## Summary
 
-v0.12.0 simplifies ClaudeCodeBridge to use only the most efficient and reliable session mode. The migration is automatic with no configuration required. Enjoy the cleaner, faster, and more reliable experience!
+v0.12.0 simplifies Claude Chat Extension to use only the most efficient and reliable session mode. The migration is automatic with no configuration required. Enjoy the cleaner, faster, and more reliable experience!
 
 ---
 
 **Migration Guide Version:** 1.0.0  
-**For ClaudeCodeBridge:** v0.12.0  
+**For Claude Chat Extension:** v0.12.0  
 **Last Updated:** January 2025

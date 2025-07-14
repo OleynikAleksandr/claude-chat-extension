@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ClaudeCodeBridge is a VS Code extension that provides real-time communication between VS Code and Claude Code CLI. The extension features a React-based multi-session webview UI with OneShoot-only architecture for maximum efficiency.
+Claude Chat Extension is a VS Code extension that provides real-time communication between VS Code and Claude Code CLI. The extension features a React-based multi-session webview UI with OneShoot-only architecture for maximum efficiency.
 
 ## Common Development Commands
 

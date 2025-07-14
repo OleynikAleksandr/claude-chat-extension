@@ -8,7 +8,7 @@
 
 ## 🎯 **ARCHITECTURE VISION**
 
-ClaudeCodeBridge uses a streamlined OneShoot-only architecture with React-based UI for efficient multi-session management and optimal cost performance.
+Claude Chat Extension uses a streamlined OneShoot-only architecture with React-based UI for efficient multi-session management and optimal cost performance.
 
 ### **Core Principles:**
 - **Efficiency:** OneShoot mode with significant cost reduction

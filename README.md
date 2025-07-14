@@ -1,4 +1,4 @@
-# ClaudeCodeBridge 🌉
+# Claude Chat Extension
 
 [![Version](https://img.shields.io/badge/version-0.12.16-blue.svg)](https://github.com/OleynikAleksandr/claude-chat-extension/releases/tag/v0.12.16)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
@@ -7,12 +7,14 @@
 
 **A familiar chat interface for Claude Code CLI - no terminal commands required!**
 
-ClaudeCodeBridge provides a user-friendly VS Code extension that brings Claude's powerful coding capabilities to a familiar chat interface. No more struggling with terminal commands - just chat naturally with Claude while it handles all the technical complexity in the background.
+Claude Chat Extension provides a user-friendly VS Code interface that brings Claude's powerful coding capabilities to a familiar chat interface. No more struggling with terminal commands - just chat naturally with Claude while it handles all the technical complexity in the background.
 
-## 🌟 Why ClaudeCodeBridge?
+> ⚠️ **Early Release Version**: This is a functional starting version with core features working. Many features are still in development and will be added in future updates. We appreciate your patience and feedback as we continue to improve the extension.
+
+## 🌟 Why Claude Chat Extension?
 
 ### 💬 **Familiar Chat Interface**
-Unlike terminal-based tools, ClaudeCodeBridge offers a standard chat UI that anyone can use. Type your messages, see responses in real-time, and interact with Claude just like any modern chat application.
+Unlike terminal-based tools, Claude Chat Extension offers a standard chat UI that anyone can use. Type your messages, see responses in real-time, and interact with Claude just like any modern chat application.
 
 ### 🔧 **Invisible Background Processing**
 Claude Code CLI runs seamlessly in the background. You never see terminal windows or command-line interfaces - everything happens behind the scenes while you focus on your conversation.
@@ -42,7 +44,7 @@ Need to see what's happening under the hood? Click the "Raw Data" button to moni
 ## 💡 How It Works
 
 ### Behind the Scenes
-ClaudeCodeBridge handles all the complexity for you:
+Claude Chat Extension handles all the complexity for you:
 
 1. **You type** in the familiar chat interface
 2. **Extension manages** Claude Code CLI in the background (completely invisible)
@@ -68,7 +70,7 @@ ClaudeCodeBridge handles all the complexity for you:
 
 ## 🏗️ Architecture
 
-ClaudeCodeBridge uses **OneShoot-only architecture** for optimal performance:
+Claude Chat Extension uses **OneShoot-only architecture** for optimal performance:
 
 ### OneShoot Mode
 **Efficient single-request processes with session caching:**
@@ -180,6 +182,32 @@ claude-chat-extension/
 ├── tsconfig.json                             # TypeScript configuration
 └── webpack.config.js                         # Webpack configuration
 ```
+
+## 🔮 Future Plans
+
+This is an early release with core functionality. Here's what's coming:
+
+### Near Term
+- 🗺️ Settings page for configuration options
+- 🎨 Theme customization (dark/light modes)
+- 💾 Export/import chat history
+- 🔍 Better search within conversations
+- 🌐 Internationalization support
+
+### Medium Term  
+- 🤖 AI-powered code suggestions
+- 📊 Advanced analytics and usage statistics
+- 🔗 Integration with popular development tools
+- 📤 Cloud sync for settings and history
+- 🎯 Custom prompt templates
+
+### Long Term
+- 👥 Team collaboration features
+- 🔌 Plugin system for extensions
+- 📡 API for third-party integrations
+- 🎆 Advanced automation capabilities
+
+Want to see a specific feature? [Open an issue](https://github.com/OleynikAleksandr/claude-chat-extension/issues) and let us know!
 
 ## 🤝 Contributing
 

@@ -818,7 +818,7 @@ This release completes the architectural refactoring to OneShoot-only mode, remo
 ## [0.6.5] - 2025-01-08
 
 ### 🎉 First Stable Release
-This is the first fully stable version of ClaudeCodeBridge with complete bidirectional communication.
+This is the first fully stable version of Claude Chat Extension with complete bidirectional communication.
 
 ### Added
 - ✅ **Complete bidirectional communication** between VS Code extension and Claude Code CLI
