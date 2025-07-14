@@ -5,48 +5,60 @@
 [![VS Code Extension](https://img.shields.io/badge/VS%20Code-Extension-brightgreen.svg)](https://code.visualstudio.com/)
 [![GitHub Release](https://img.shields.io/github/v/release/OleynikAleksandr/claude-chat-extension)](https://github.com/OleynikAleksandr/claude-chat-extension/releases)
 
-**The most efficient VS Code extension for real-time communication with Claude Code CLI**
+**A familiar chat interface for Claude Code CLI - no terminal commands required!**
 
-ClaudeCodeBridge enables seamless integration between VS Code and Anthropic's Claude Code CLI, providing a native chat interface with OneShoot architecture for maximum efficiency.
+ClaudeCodeBridge provides a user-friendly VS Code extension that brings Claude's powerful coding capabilities to a familiar chat interface. No more struggling with terminal commands - just chat naturally with Claude while it handles all the technical complexity in the background.
 
-## 🚀 Version 0.12.16 - Polished UI & OneShoot Architecture
+## 🌟 Why ClaudeCodeBridge?
 
-Latest release with **refined user interface** and **significant cost savings** through efficient OneShoot-only architecture.
+### 💬 **Familiar Chat Interface**
+Unlike terminal-based tools, ClaudeCodeBridge offers a standard chat UI that anyone can use. Type your messages, see responses in real-time, and interact with Claude just like any modern chat application.
 
-### 🎯 Key Features
-- **🚀 OneShoot Architecture**: Single-request processes with `claude --print --resume`
-- **💰 Cost Efficient**: Dramatic savings through smart session caching
-- **🔧 Real-time Tool Monitoring**: Live display of Read, Write, Bash, and other tool usage
-- **📊 Token Usage Tracking**: Visual progress bar showing context consumption
-- **💬 Multi-Session Support**: Manage multiple independent Claude conversations
-- **⚡ Streaming Responses**: Character-by-character response display
+### 🔧 **Invisible Background Processing**
+Claude Code CLI runs seamlessly in the background. You never see terminal windows or command-line interfaces - everything happens behind the scenes while you focus on your conversation.
 
-### ✨ What's New in v0.12.16
+### 📊 **Real-time JSON Log Monitoring**
+Need to see what's happening under the hood? Click the "Raw Data" button to monitor all Claude Code logs in real-time JSON format. Perfect for debugging or understanding Claude's tool usage.
 
-- **Enhanced Status Bar**: Doubled height with improved readability
-- **Smart Path Truncation**: Long file paths intelligently shortened to 80 characters
-- **Refined Color Scheme**: Status indicators match token counter color (#00ff00)
-- **Smooth Animations**: Token progress bar grows from 0% with easing
-- **Consistent Tool Pulsation**: Active tools always show processing animation
-- **Button-style Status Bar**: Matches the design of session controls
+## 🚀 Version 0.12.16 - Professional Chat Experience
+
+### 🎯 Key Advantages
+- **💬 Chat UI, Not Terminal**: User-friendly interface that anyone can use - no command-line knowledge required
+- **👻 Background Processing**: Claude Code CLI runs invisibly - you never see terminal windows
+- **📊 Live Monitoring**: Click "Raw Data" to see real-time JSON logs of all Claude's operations
+- **🔧 Tool Transparency**: Watch Claude work with files, run commands, and edit code in real-time
+- **💰 Cost Efficient**: Smart session caching reduces API costs dramatically
+- **📦 Multi-Session**: Work on multiple projects simultaneously in separate chat tabs
+
+### ✨ Technical Features
+
+- **OneShoot Architecture**: Each message spawns a clean `claude --print --resume` process
+- **Streaming Responses**: See Claude's responses character-by-character as they're generated
+- **Full Tool Support**: Read, Write, Edit, Bash, Grep, WebSearch, and all other Claude tools
+- **Token Tracking**: Visual progress bar shows real-time token usage against context limit
+- **Session Persistence**: Continue conversations across VS Code restarts
+- **Error Recovery**: Each message gets a fresh process - no hanging terminals
 
 ## 💡 How It Works
 
-### Real-time Tool Monitoring
-The extension displays exactly what Claude is doing at any moment:
-- **Reading files**: Shows "Read: /path/to/file.ts"
-- **Writing code**: Shows "Write: /path/to/new-file.js"
-- **Running commands**: Shows "Bash: npm install"
-- **Searching code**: Shows "Grep: searching for 'function'"
-- **Ready state**: Shows "Assistant Ready For Next Task" in green
+### Behind the Scenes
+ClaudeCodeBridge handles all the complexity for you:
 
-### Cost-Efficient Architecture
-Each message is processed as a separate request with session caching:
-1. User sends message
-2. Extension spawns `claude --print --resume` process
-3. Claude processes with cached context (significant token savings)
-4. Response streams back in real-time
-5. Process terminates cleanly
+1. **You type** in the familiar chat interface
+2. **Extension manages** Claude Code CLI in the background (completely invisible)
+3. **Claude executes** tools and commands without any terminal windows
+4. **You see** responses streaming in the chat, with live status updates
+5. **Optionally monitor** raw JSON logs by clicking "Raw Data" button
+
+### What You See vs What Happens
+
+| What You See | What Actually Happens |
+|--------------|----------------------|
+| Clean chat interface | `claude --print --resume` processes in background |
+| "Claude is reading file.ts" | Full file system operations executed invisibly |
+| "Running: npm install" | Commands run in hidden processes |
+| Streaming text responses | Real-time JSONL parsing and display |
+| Simple "Raw Data" toggle | Complete JSON log monitoring system |
 
 ### Multi-Session Workflow
 - Each session maintains independent context
